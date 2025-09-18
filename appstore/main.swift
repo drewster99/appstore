@@ -13,15 +13,32 @@ struct AppStoreCLI {
         let command = parser.parse()
 
         switch command {
-        case .search(let query):
+        case .search(let options):
             let searchCommand = SearchCommand()
-            await searchCommand.execute(query: query)
+            await searchCommand.execute(options: options)
+
+        case .lookup(let options):
+            let lookupCommand = LookupCommand()
+            await lookupCommand.execute(options: options)
+
+        case .top(let options):
+            let topCommand = TopCommand()
+            await topCommand.execute(options: options)
 
         case .searchHelp:
             HelpCommand.showSearchHelp()
 
+        case .lookupHelp:
+            HelpCommand.showLookupHelp()
+
+        case .topHelp:
+            HelpCommand.showTopHelp()
+
         case .help:
             HelpCommand.showGeneralHelp()
+
+        case .usage:
+            HelpCommand.showUsage()
 
         case .unknown(let cmd):
             HelpCommand.showUnknownCommand(cmd)
