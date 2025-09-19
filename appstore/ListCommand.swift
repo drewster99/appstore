@@ -21,10 +21,20 @@ enum ListType: String, CaseIterable {
 }
 
 struct ListOptions {
+    let commonOptions: CommonOptions
     let listType: ListType
-    let outputMode: OutputMode  // Legacy support
-    let outputFormat: OutputFormat?
-    let verbosity: Verbosity?
+
+    // Compatibility accessors for migration
+    var outputMode: OutputMode {
+        OutputOptions(
+            format: commonOptions.outputFormat,
+            verbosity: commonOptions.verbosity,
+            outputFile: commonOptions.outputFile,
+            inputFile: commonOptions.inputFile
+        ).asOutputMode ?? .summary
+    }
+    var outputFormat: OutputFormat? { commonOptions.outputFormat }
+    var verbosity: Verbosity? { commonOptions.verbosity }
 }
 
 class ListCommand {

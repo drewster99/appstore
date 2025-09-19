@@ -13,18 +13,18 @@ struct EnvironmentConfig {
         return Int(value)
     }
 
-    static var defaultVerbosity: Verbosity {
+    static var defaultVerbosity: Verbosity? {
         guard let value = ProcessInfo.processInfo.environment["APPSTORE_DEFAULT_VERBOSITY"],
               let verbosity = Verbosity(rawValue: value.lowercased()) else {
-            return .summary
+            return nil
         }
         return verbosity
     }
 
-    static var defaultFormat: OutputFormat {
+    static var defaultOutputFormat: OutputFormat? {
         guard let value = ProcessInfo.processInfo.environment["APPSTORE_DEFAULT_FORMAT"],
               let format = OutputFormat.from(cliName: value.lowercased()) else {
-            return .text
+            return nil
         }
         return format
     }

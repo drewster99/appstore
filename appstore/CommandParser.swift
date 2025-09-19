@@ -38,29 +38,26 @@ class CommandParser {
                     return .searchHelp
                 }
 
-                var showRequest = EnvironmentConfig.showRequest
+                let args = Array(arguments.dropFirst(2))
+                let parseResult = CommonOptionsParser.parse(args)
+
+                if let error = parseResult.error {
+                    print("Error: \(error)")
+                    print("Use 'appstore search --help' to see available options.")
+                    return .searchHelp
+                }
+
                 var limit = EnvironmentConfig.defaultLimit ?? SearchOptions.defaultLimit
-                var outputMode = OutputMode.default
-                var outputFormat: OutputFormat?
-                var verbosity: Verbosity?
-                var storefront = EnvironmentConfig.defaultStorefront != "us" ? EnvironmentConfig.defaultStorefront : nil
                 var attribute = EnvironmentConfig.defaultAttribute
                 var genre = EnvironmentConfig.defaultGenre
-                var outputFile: String?
-                var inputFile: String?
-                var fullDescription = false
-                var searchTerms = Array(arguments.dropFirst(2))
+                var searchTerms = parseResult.remainingArgs
 
-                // Process all flags
+                // Process search-specific flags
                 var i = 0
                 while i < searchTerms.count {
                     switch searchTerms[i] {
                     case "--unlimited":
                         limit = 0
-                        searchTerms.remove(at: i)
-
-                    case "--show-request":
-                        showRequest = true
                         searchTerms.remove(at: i)
 
                     case "--limit":
@@ -74,77 +71,6 @@ class CommandParser {
                             searchTerms.remove(at: i)
                         } else {
                             print("Error: --limit requires a numeric value")
-                            return .searchHelp
-                        }
-
-                    case "--output-mode":
-                        searchTerms.remove(at: i)
-                        if i < searchTerms.count {
-                            let modeString = searchTerms[i].lowercased()
-                            if let mode = OutputMode(rawValue: modeString) {
-                                outputMode = mode
-                                searchTerms.remove(at: i)
-                            } else {
-                                print("Error: Invalid output mode '\(searchTerms[i])'")
-                                print("Valid modes: \(OutputMode.allCases.map { $0.rawValue }.joined(separator: ", "))")
-                                return .searchHelp
-                            }
-                        } else {
-                            print("Available output modes:")
-                            for mode in OutputMode.allCases {
-                                print("  \(mode.rawValue) - \(mode.description)")
-                            }
-                            return .searchHelp
-                        }
-
-                    case "--output-format", "--format":
-                        searchTerms.remove(at: i)
-                        if i < searchTerms.count {
-                            let formatString = searchTerms[i].lowercased()
-                            if let format = OutputFormat.from(cliName: formatString) {
-                                outputFormat = format
-                                searchTerms.remove(at: i)
-                            } else {
-                                print("Error: Invalid output format '\(searchTerms[i])'")
-                                print("Valid formats: text, json, html, html-open, markdown")
-                                return .searchHelp
-                            }
-                        } else {
-                            print("Available output formats:")
-                            for format in OutputFormat.allCases {
-                                print("  \(format.cliName) - \(format.description)")
-                            }
-                            return .searchHelp
-                        }
-
-                    case "--verbosity", "-v":
-                        searchTerms.remove(at: i)
-                        if i < searchTerms.count {
-                            let verbosityString = searchTerms[i].lowercased()
-                            if let v = Verbosity(rawValue: verbosityString) {
-                                verbosity = v
-                                searchTerms.remove(at: i)
-                            } else {
-                                print("Error: Invalid verbosity level '\(searchTerms[i])'")
-                                print("Valid levels: \(Verbosity.allCases.map { $0.rawValue }.joined(separator: ", "))")
-                                return .searchHelp
-                            }
-                        } else {
-                            print("Available verbosity levels:")
-                            for v in Verbosity.allCases {
-                                print("  \(v.rawValue) - \(v.description)")
-                            }
-                            return .searchHelp
-                        }
-
-                    case "--country", "--storefront":
-                        let flag = searchTerms[i]
-                        searchTerms.remove(at: i)
-                        if i < searchTerms.count {
-                            storefront = searchTerms[i]
-                            searchTerms.remove(at: i)
-                        } else {
-                            print("Error: \(flag) requires a value")
                             return .searchHelp
                         }
 
@@ -183,29 +109,6 @@ class CommandParser {
                             return .searchHelp
                         }
 
-                    case "--output-file", "-o":
-                        searchTerms.remove(at: i)
-                        if i < searchTerms.count {
-                            outputFile = searchTerms[i]
-                            searchTerms.remove(at: i)
-                        } else {
-                            print("Error: --output-file requires a file path")
-                            return .searchHelp
-                        }
-
-                    case "--input-file", "-i":
-                        searchTerms.remove(at: i)
-                        if i < searchTerms.count {
-                            inputFile = searchTerms[i]
-                            searchTerms.remove(at: i)
-                        } else {
-                            print("Error: --input-file requires a file path")
-                            return .searchHelp
-                        }
-
-                    case "--full-description":
-                        fullDescription = true
-                        searchTerms.remove(at: i)
 
                     default:
                         // Check if it's an unknown flag
@@ -225,50 +128,12 @@ class CommandParser {
 
                 let query = searchTerms.joined(separator: " ")
 
-                // If new format/verbosity flags are used, create OutputMode from them
-                // Otherwise use the legacy outputMode
-                let finalOutputMode: OutputMode
-                if let format = outputFormat, let v = verbosity {
-                    // Both new flags specified
-                    let options = OutputOptions(format: format, verbosity: v, outputFile: nil, inputFile: nil)
-                    if let mode = options.asOutputMode {
-                        finalOutputMode = mode
-                    } else {
-                        // Special format like markdown - use a placeholder
-                        // We'll handle this in SearchCommand
-                        finalOutputMode = .summary  // Default fallback
-                    }
-                } else if let format = outputFormat {
-                    // Only format specified, use default verbosity
-                    let options = OutputOptions(format: format, verbosity: .summary, outputFile: nil, inputFile: nil)
-                    if let mode = options.asOutputMode {
-                        finalOutputMode = mode
-                    } else {
-                        // Special format like markdown
-                        finalOutputMode = .summary  // Default fallback
-                    }
-                } else if let v = verbosity {
-                    // Only verbosity specified, use text format
-                    let options = OutputOptions(format: .text, verbosity: v, outputFile: nil, inputFile: nil)
-                    finalOutputMode = options.asOutputMode ?? outputMode
-                } else {
-                    // Use legacy outputMode
-                    finalOutputMode = outputMode
-                }
-
                 let options = SearchOptions(
+                    commonOptions: parseResult.options,
                     query: query,
-                    showRequest: showRequest,
                     limit: limit,
-                    outputMode: finalOutputMode,
-                    storefront: storefront,
                     attribute: attribute,
-                    genre: genre,
-                    outputFile: outputFile,
-                    inputFile: inputFile,
-                    outputFormat: outputFormat,
-                    verbosity: verbosity,
-                    fullDescription: fullDescription
+                    genre: genre
                 )
                 return .search(options: options)
             } else {
@@ -311,79 +176,31 @@ class CommandParser {
                 lookupType = .bundleId(firstArg)
             }
 
-            // Check if there are additional options after the value
-            var showRequest = EnvironmentConfig.showRequest
-            var outputMode = OutputMode.default
-            var storefront = EnvironmentConfig.defaultStorefront != "us" ? EnvironmentConfig.defaultStorefront : nil
-            var entity: String?
-            var outputFile: String?
-            var inputFile: String?
-            var fullDescription = false
-            var args = Array(arguments.dropFirst(3)) // Skip the value we already processed
+            // Parse remaining arguments with CommonOptionsParser
+            let remainingArgs = Array(arguments.dropFirst(3))
+            let parseResult = CommonOptionsParser.parse(remainingArgs)
 
-            // Process remaining flags
+            if let error = parseResult.error {
+                print("Error: \(error)")
+                print("Use 'appstore lookup --help' to see available options.")
+                return .lookupHelp
+            }
+
+            // Process lookup-specific flags
+            var entity: String?
+            var args = parseResult.remainingArgs
             var i = 0
             while i < args.count {
                 switch args[i] {
-
-                case "--show-request":
-                    showRequest = true
-                    args.remove(at: i)
-
-                case "--country", "--storefront":
-                    let flag = args[i]
+                case "--entity":
                     args.remove(at: i)
                     if i < args.count {
-                        storefront = args[i]
+                        entity = args[i]
                         args.remove(at: i)
                     } else {
-                        print("Error: \(flag) requires a value")
+                        print("Error: --entity requires a value")
                         return .lookupHelp
                     }
-
-                case "--output-mode":
-                    args.remove(at: i)
-                    if i < args.count {
-                        let modeString = args[i].lowercased()
-                        if let mode = OutputMode(rawValue: modeString) {
-                            outputMode = mode
-                            args.remove(at: i)
-                        } else {
-                            print("Error: Invalid output mode '\(args[i])'")
-                            print("Valid modes: \(OutputMode.allCases.map { $0.rawValue }.joined(separator: ", "))")
-                            return .lookupHelp
-                        }
-                    } else {
-                        print("Available output modes:")
-                        for mode in OutputMode.allCases {
-                            print("  \(mode.rawValue) - \(mode.description)")
-                        }
-                        return .lookupHelp
-                    }
-
-                case "--output-file", "-o":
-                    args.remove(at: i)
-                    if i < args.count {
-                        outputFile = args[i]
-                        args.remove(at: i)
-                    } else {
-                        print("Error: --output-file requires a file path")
-                        return .lookupHelp
-                    }
-
-                case "--input-file", "-i":
-                    args.remove(at: i)
-                    if i < args.count {
-                        inputFile = args[i]
-                        args.remove(at: i)
-                    } else {
-                        print("Error: --input-file requires a file path")
-                        return .lookupHelp
-                    }
-
-                case "--full-description":
-                    fullDescription = true
-                    args.remove(at: i)
 
                 default:
                     if args[i].hasPrefix("--") || (args[i].hasPrefix("-") && args[i] != "-") {
@@ -396,191 +213,86 @@ class CommandParser {
             }
 
             let options = LookupOptions(
+                commonOptions: parseResult.options,
                 lookupType: lookupType,
-                showRequest: showRequest,
-                outputMode: outputMode,
-                storefront: storefront,
-                entity: entity,
-                outputFile: outputFile,
-                inputFile: inputFile,
-                outputFormat: nil,
-                verbosity: nil,
-                fullDescription: fullDescription
+                entity: entity
             )
             return .lookup(options: options)
         }
 
-        var showRequest = EnvironmentConfig.showRequest
-        var outputMode = OutputMode.default
-        var outputFormat: OutputFormat?
-        var verbosity: Verbosity?
-        var storefront = EnvironmentConfig.defaultStorefront != "us" ? EnvironmentConfig.defaultStorefront : nil
-        var entity: String?
-        var outputFile: String?
-        var inputFile: String?
-        var fullDescription = false
-        var lookupType: LookupType?
-        var args = Array(arguments.dropFirst(2))
+        // Parse all arguments with CommonOptionsParser first
+        let args = Array(arguments.dropFirst(2))
+        let parseResult = CommonOptionsParser.parse(args)
 
-        // Process all flags
+        if let error = parseResult.error {
+            print("Error: \(error)")
+            print("Use 'appstore lookup --help' to see available options.")
+            return .lookupHelp
+        }
+
+        var lookupType: LookupType?
+        var entity: String?
+        var remainingArgs = parseResult.remainingArgs
+
+        // Process lookup-specific flags
         var i = 0
-        while i < args.count {
-            switch args[i] {
+        while i < remainingArgs.count {
+            switch remainingArgs[i] {
             case "--id":
-                args.remove(at: i)
-                if i < args.count {
-                    lookupType = .id(args[i])
-                    args.remove(at: i)
+                remainingArgs.remove(at: i)
+                if i < remainingArgs.count {
+                    lookupType = .id(remainingArgs[i])
+                    remainingArgs.remove(at: i)
                 } else {
                     print("Error: --id requires a value")
                     return .lookupHelp
                 }
 
             case "--ids":
-                args.remove(at: i)
-                if i < args.count {
-                    let ids = args[i].split(separator: ",").map(String.init)
+                remainingArgs.remove(at: i)
+                if i < remainingArgs.count {
+                    let ids = remainingArgs[i].split(separator: ",").map(String.init)
                     lookupType = .ids(ids)
-                    args.remove(at: i)
+                    remainingArgs.remove(at: i)
                 } else {
                     print("Error: --ids requires comma-separated values")
                     return .lookupHelp
                 }
 
             case "--bundle-id":
-                args.remove(at: i)
-                if i < args.count {
-                    lookupType = .bundleId(args[i])
-                    args.remove(at: i)
+                remainingArgs.remove(at: i)
+                if i < remainingArgs.count {
+                    lookupType = .bundleId(remainingArgs[i])
+                    remainingArgs.remove(at: i)
                 } else {
                     print("Error: --bundle-id requires a value")
                     return .lookupHelp
                 }
 
             case "--url":
-                args.remove(at: i)
-                if i < args.count {
-                    lookupType = .url(args[i])
-                    args.remove(at: i)
+                remainingArgs.remove(at: i)
+                if i < remainingArgs.count {
+                    lookupType = .url(remainingArgs[i])
+                    remainingArgs.remove(at: i)
                 } else {
                     print("Error: --url requires a value")
                     return .lookupHelp
                 }
 
-            case "--country", "--storefront":
-                let flag = args[i]
-                args.remove(at: i)
-                if i < args.count {
-                    storefront = args[i]
-                    args.remove(at: i)
-                } else {
-                    print("Error: \(flag) requires a value")
-                    return .lookupHelp
-                }
-
             case "--entity":
-                args.remove(at: i)
-                if i < args.count {
-                    entity = args[i]
-                    args.remove(at: i)
+                remainingArgs.remove(at: i)
+                if i < remainingArgs.count {
+                    entity = remainingArgs[i]
+                    remainingArgs.remove(at: i)
                 } else {
                     print("Error: --entity requires a value")
                     return .lookupHelp
                 }
 
-
-            case "--show-request":
-                showRequest = true
-                args.remove(at: i)
-
-            case "--output-mode":
-                args.remove(at: i)
-                if i < args.count {
-                    let modeString = args[i].lowercased()
-                    if let mode = OutputMode(rawValue: modeString) {
-                        outputMode = mode
-                        args.remove(at: i)
-                    } else {
-                        print("Error: Invalid output mode '\(args[i])'")
-                        print("Valid modes: \(OutputMode.allCases.map { $0.rawValue }.joined(separator: ", "))")
-                        return .lookupHelp
-                    }
-                } else {
-                    print("Available output modes:")
-                    for mode in OutputMode.allCases {
-                        print("  \(mode.rawValue) - \(mode.description)")
-                    }
-                    return .lookupHelp
-                }
-
-            case "--output-format", "--format":
-                args.remove(at: i)
-                if i < args.count {
-                    let formatString = args[i].lowercased()
-                    if let format = OutputFormat.from(cliName: formatString) {
-                        outputFormat = format
-                        args.remove(at: i)
-                    } else {
-                        print("Error: Invalid output format '\(args[i])'")
-                        print("Valid formats: text, json, markdown, html, html-open")
-                        return .lookupHelp
-                    }
-                } else {
-                    print("Available output formats:")
-                    for format in OutputFormat.allCases {
-                        print("  \(format.cliName) - \(format.description)")
-                    }
-                    return .lookupHelp
-                }
-
-            case "--verbosity", "-v":
-                args.remove(at: i)
-                if i < args.count {
-                    let verbosityString = args[i].lowercased()
-                    if let v = Verbosity(rawValue: verbosityString) {
-                        verbosity = v
-                        args.remove(at: i)
-                    } else {
-                        print("Error: Invalid verbosity level '\(args[i])'")
-                        print("Valid levels: minimal, summary, expanded, verbose, complete")
-                        return .lookupHelp
-                    }
-                } else {
-                    print("Available verbosity levels:")
-                    for v in Verbosity.allCases {
-                        print("  \(v.rawValue) - \(v.description)")
-                    }
-                    return .lookupHelp
-                }
-
-            case "--output-file", "-o":
-                args.remove(at: i)
-                if i < args.count {
-                    outputFile = args[i]
-                    args.remove(at: i)
-                } else {
-                    print("Error: --output-file requires a file path")
-                    return .lookupHelp
-                }
-
-            case "--input-file", "-i":
-                args.remove(at: i)
-                if i < args.count {
-                    inputFile = args[i]
-                    args.remove(at: i)
-                } else {
-                    print("Error: --input-file requires a file path")
-                    return .lookupHelp
-                }
-
-            case "--full-description":
-                fullDescription = true
-                args.remove(at: i)
-
             default:
                 // Check if it's an unknown flag
-                if args[i].hasPrefix("--") || (args[i].hasPrefix("-") && args[i] != "-") {
-                    print("Error: Unknown option '\(args[i])'")
+                if remainingArgs[i].hasPrefix("--") || (remainingArgs[i].hasPrefix("-") && remainingArgs[i] != "-") {
+                    print("Error: Unknown option '\(remainingArgs[i])'")
                     print("Use 'appstore lookup --help' to see available options.")
                     return .lookupHelp
                 }
@@ -599,37 +311,10 @@ class CommandParser {
             return .lookupHelp
         }
 
-        // Handle format/verbosity combination
-        if outputFormat != nil || verbosity != nil {
-            // If format is specified but not verbosity, use default verbosity
-            let finalVerbosity = verbosity ?? .summary
-            let finalFormat = outputFormat ?? .text
-
-            // Create compatibility outputMode for legacy code
-            if finalFormat == .json {
-                outputMode = .json
-            } else if finalFormat == .text {
-                switch finalVerbosity {
-                case .minimal: outputMode = .oneline
-                case .summary: outputMode = .summary
-                case .expanded: outputMode = .expanded
-                case .verbose: outputMode = .verbose
-                case .complete: outputMode = .complete
-                }
-            }
-        }
-
         let options = LookupOptions(
+            commonOptions: parseResult.options,
             lookupType: lookupType,
-            showRequest: showRequest,
-            outputMode: outputMode,
-            storefront: storefront,
-            entity: entity,
-            outputFile: outputFile,
-            inputFile: inputFile,
-            outputFormat: outputFormat,
-            verbosity: verbosity,
-            fullDescription: fullDescription
+            entity: entity
         )
         return .lookup(options: options)
     }
@@ -650,14 +335,7 @@ class CommandParser {
         // Parse chart type (first non-flag argument)
         var chartType: TopChartType?
         var limit = EnvironmentConfig.defaultLimit ?? 25
-        var storefront = EnvironmentConfig.defaultStorefront
         var genre = EnvironmentConfig.defaultGenre
-        var outputMode = OutputMode.default
-        var outputFormat: OutputFormat?
-        var verbosity: Verbosity?
-        var outputFile: String?
-        var inputFile: String?
-        var fullDescription = false
         var args = Array(arguments.dropFirst(2))
 
         // Check if first argument is a chart type
@@ -688,14 +366,24 @@ class CommandParser {
             chartType = EnvironmentConfig.defaultChartType
         }
 
-        // Process flags
+        // Parse common options with CommonOptionsParser
+        let parseResult = CommonOptionsParser.parse(args)
+        if let error = parseResult.error {
+            print("Error: \(error)")
+            print("Use 'appstore top --help' to see available options.")
+            return .topHelp
+        }
+
+        var remainingArgs = parseResult.remainingArgs
+
+        // Process top-specific flags
         var i = 0
-        while i < args.count {
-            switch args[i] {
+        while i < remainingArgs.count {
+            switch remainingArgs[i] {
             case "--type":
-                args.remove(at: i)
-                if i < args.count {
-                    let typeString = args[i].lowercased()
+                remainingArgs.remove(at: i)
+                if i < remainingArgs.count {
+                    let typeString = remainingArgs[i].lowercased()
                     switch typeString {
                     case "free":
                         chartType = .free
@@ -708,11 +396,11 @@ class CommandParser {
                     case "newpaid", "new-paid":
                         chartType = .newPaid
                     default:
-                        print("Error: Invalid chart type '\(args[i])'")
+                        print("Error: Invalid chart type '\(remainingArgs[i])'")
                         print("Valid types: free, paid, grossing, newfree, newpaid")
                         return .topHelp
                     }
-                    args.remove(at: i)
+                    remainingArgs.remove(at: i)
                 } else {
                     print("Available chart types:")
                     for type in TopChartType.allCases {
@@ -722,124 +410,29 @@ class CommandParser {
                 }
 
             case "--limit":
-                args.remove(at: i)
-                if i < args.count, let limitValue = Int(args[i]) {
+                remainingArgs.remove(at: i)
+                if i < remainingArgs.count, let limitValue = Int(remainingArgs[i]) {
                     // RSS feeds max at 200
                     limit = min(max(limitValue, 1), 200)
-                    args.remove(at: i)
+                    remainingArgs.remove(at: i)
                 } else {
                     print("Error: --limit requires a numeric value (1-200)")
                     return .topHelp
                 }
 
-            case "--country", "--storefront":
-                let flag = args[i]
-                args.remove(at: i)
-                if i < args.count {
-                    storefront = args[i].lowercased()
-                    args.remove(at: i)
-                } else {
-                    print("Error: \(flag) requires a value")
-                    return .topHelp
-                }
-
             case "--genre":
-                args.remove(at: i)
-                if i < args.count, let genreId = Int(args[i]) {
+                remainingArgs.remove(at: i)
+                if i < remainingArgs.count, let genreId = Int(remainingArgs[i]) {
                     genre = genreId
-                    args.remove(at: i)
+                    remainingArgs.remove(at: i)
                 } else {
                     print("Error: --genre requires a numeric genre ID")
                     return .topHelp
                 }
 
-            case "--output-mode":
-                args.remove(at: i)
-                if i < args.count {
-                    let modeString = args[i].lowercased()
-                    if let mode = OutputMode(rawValue: modeString) {
-                        outputMode = mode
-                        args.remove(at: i)
-                    } else {
-                        print("Error: Invalid output mode '\(args[i])'")
-                        print("Valid modes: \(OutputMode.allCases.map { $0.rawValue }.joined(separator: ", "))")
-                        return .topHelp
-                    }
-                } else {
-                    print("Available output modes:")
-                    for mode in OutputMode.allCases {
-                        print("  \(mode.rawValue) - \(mode.description)")
-                    }
-                    return .topHelp
-                }
-
-            case "--output-format", "--format":
-                args.remove(at: i)
-                if i < args.count {
-                    let formatString = args[i].lowercased()
-                    if let format = OutputFormat.from(cliName: formatString) {
-                        outputFormat = format
-                        args.remove(at: i)
-                    } else {
-                        print("Error: Invalid output format '\(args[i])'")
-                        print("Valid formats: text, json, markdown, html, html-open")
-                        return .topHelp
-                    }
-                } else {
-                    print("Available output formats:")
-                    for format in OutputFormat.allCases {
-                        print("  \(format.cliName) - \(format.description)")
-                    }
-                    return .topHelp
-                }
-
-            case "--verbosity", "-v":
-                args.remove(at: i)
-                if i < args.count {
-                    let verbosityString = args[i].lowercased()
-                    if let v = Verbosity(rawValue: verbosityString) {
-                        verbosity = v
-                        args.remove(at: i)
-                    } else {
-                        print("Error: Invalid verbosity level '\(args[i])'")
-                        print("Valid levels: minimal, summary, expanded, verbose, complete")
-                        return .topHelp
-                    }
-                } else {
-                    print("Available verbosity levels:")
-                    for v in Verbosity.allCases {
-                        print("  \(v.rawValue) - \(v.description)")
-                    }
-                    return .topHelp
-                }
-
-            case "--output-file":
-                args.remove(at: i)
-                if i < args.count {
-                    outputFile = args[i]
-                    args.remove(at: i)
-                } else {
-                    print("Error: --output-file requires a file path")
-                    return .topHelp
-                }
-
-            case "--input-file":
-                args.remove(at: i)
-                if i < args.count {
-                    inputFile = args[i]
-                    args.remove(at: i)
-                } else {
-                    print("Error: --input-file requires a file path")
-                    return .topHelp
-                }
-
-            case "--full-description":
-                fullDescription = true
-                args.remove(at: i)
-
             default:
-                if args[i].hasPrefix("--") || (args[i].hasPrefix("-") && args[i] != "-") {
-                    print("Error: Unknown option '\(args[i])'")
+                if remainingArgs[i].hasPrefix("--") || (remainingArgs[i].hasPrefix("-") && remainingArgs[i] != "-") {
+                    print("Error: Unknown option '\(remainingArgs[i])'")
                     print("Use 'appstore top --help' to see available options.")
                     return .topHelp
                 }
@@ -855,37 +448,11 @@ class CommandParser {
             return .topHelp
         }
 
-        // Handle format/verbosity combination
-        if outputFormat != nil || verbosity != nil {
-            // If format is specified but not verbosity, use default verbosity
-            let finalVerbosity = verbosity ?? .summary
-            let finalFormat = outputFormat ?? .text
-
-            // Create compatibility outputMode for legacy code
-            if finalFormat == .json {
-                outputMode = .json
-            } else if finalFormat == .text {
-                switch finalVerbosity {
-                case .minimal: outputMode = .oneline
-                case .summary: outputMode = .summary
-                case .expanded: outputMode = .expanded
-                case .verbose: outputMode = .verbose
-                case .complete: outputMode = .complete
-                }
-            }
-        }
-
         let options = TopOptions(
+            commonOptions: parseResult.options,
             chartType: finalChartType,
             limit: limit,
-            storefront: storefront,
-            genre: genre,
-            outputMode: outputMode,
-            outputFormat: outputFormat,
-            verbosity: verbosity,
-            outputFile: outputFile,
-            inputFile: inputFile,
-            fullDescription: fullDescription
+            genre: genre
         )
         return .top(options: options)
     }
@@ -901,9 +468,6 @@ class CommandParser {
         }
 
         var listType: ListType?
-        var outputMode = OutputMode.default
-        var outputFormat: OutputFormat?
-        var verbosity: Verbosity?
         var args = Array(arguments.dropFirst(2))
 
         // Check if first argument is a list type
@@ -926,106 +490,23 @@ class CommandParser {
             args.removeFirst()
         }
 
-        // Process flags
-        var i = 0
-        while i < args.count {
-            switch args[i] {
-            case "--output-mode":
-                args.remove(at: i)
-                if i < args.count {
-                    let modeString = args[i].lowercased()
-                    if let mode = OutputMode(rawValue: modeString) {
-                        outputMode = mode
-                        args.remove(at: i)
-                    } else {
-                        print("Error: Invalid output mode '\(args[i])'")
-                        print("Valid modes: \(OutputMode.allCases.map { $0.rawValue }.joined(separator: ", "))")
-                        return .listHelp
-                    }
-                } else {
-                    print("Available output modes:")
-                    for mode in OutputMode.allCases {
-                        print("  \(mode.rawValue) - \(mode.description)")
-                    }
-                    return .listHelp
-                }
-
-            case "--output-format", "--format":
-                args.remove(at: i)
-                if i < args.count {
-                    let formatString = args[i].lowercased()
-                    if let format = OutputFormat.from(cliName: formatString) {
-                        outputFormat = format
-                        args.remove(at: i)
-                    } else {
-                        print("Error: Invalid output format '\(args[i])'")
-                        print("Valid formats: text, json, markdown")
-                        return .listHelp
-                    }
-                } else {
-                    print("Available output formats:")
-                    for format in [OutputFormat.text, OutputFormat.json, OutputFormat.markdown] {
-                        print("  \(format.rawValue) - \(format.description)")
-                    }
-                    return .listHelp
-                }
-
-            case "--verbosity", "-v":
-                args.remove(at: i)
-                if i < args.count {
-                    let verbosityString = args[i].lowercased()
-                    if let v = Verbosity(rawValue: verbosityString) {
-                        verbosity = v
-                        args.remove(at: i)
-                    } else {
-                        print("Error: Invalid verbosity level '\(args[i])'")
-                        print("Valid levels: minimal, summary")
-                        return .listHelp
-                    }
-                } else {
-                    print("Available verbosity levels for list:")
-                    print("  minimal - Compact list")
-                    print("  summary - Detailed list with descriptions")
-                    return .listHelp
-                }
-
-            default:
-                if args[i].hasPrefix("--") || (args[i].hasPrefix("-") && args[i] != "-") {
-                    print("Error: Unknown option '\(args[i])'")
-                    print("Use 'appstore list --help' to see available options.")
-                    return .listHelp
-                }
-                i += 1
-            }
+        // Parse common options with CommonOptionsParser
+        let parseResult = CommonOptionsParser.parse(args)
+        if let error = parseResult.error {
+            print("Error: \(error)")
+            print("Use 'appstore list --help' to see available options.")
+            return .listHelp
         }
+
+        // No list-specific flags currently
 
         guard let listType = listType else {
             return .listHelp
         }
 
-        // Handle format/verbosity combination
-        if outputFormat != nil || verbosity != nil {
-            // If format is specified but not verbosity, use default verbosity
-            let finalVerbosity = verbosity ?? .summary
-            let finalFormat = outputFormat ?? .text
-
-            // Create compatibility outputMode for legacy code
-            if finalFormat == .json {
-                outputMode = .json
-            } else if finalFormat == .text {
-                switch finalVerbosity {
-                case .minimal: outputMode = .oneline
-                case .summary: outputMode = .summary
-                default: outputMode = .summary
-                }
-            }
-        }
-
         let options = ListOptions(
-            listType: listType,
-            outputMode: outputMode,
-            outputFormat: outputFormat,
-            verbosity: verbosity
+            commonOptions: parseResult.options,
+            listType: listType
         )
         return .list(options: options)
     }

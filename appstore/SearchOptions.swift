@@ -140,23 +140,32 @@ enum SearchAttribute: String, CaseIterable {
 }
 
 struct SearchOptions {
+    let commonOptions: CommonOptions
     let query: String
-    let showRequest: Bool
     let limit: Int  // 0 means no limit
-    let outputMode: OutputMode
-    let storefront: String?  // Was 'country', using storefront for consistency
     let attribute: String?
     let genre: Int?
-    let outputFile: String?
-    let inputFile: String?
-    // New fields for format/verbosity separation
-    let outputFormat: OutputFormat?
-    let verbosity: Verbosity?
-    let fullDescription: Bool
 
     static let defaultLimit = 20
     static let maxLimit = 200
     static let minLimit = 0  // 0 means unlimited
+
+    // Compatibility accessors for migration
+    var showRequest: Bool { commonOptions.showRequest }
+    var outputMode: OutputMode {
+        OutputOptions(
+            format: commonOptions.outputFormat,
+            verbosity: commonOptions.verbosity,
+            outputFile: commonOptions.outputFile,
+            inputFile: commonOptions.inputFile
+        ).asOutputMode ?? .summary
+    }
+    var storefront: String? { commonOptions.storefront }
+    var outputFile: String? { commonOptions.outputFile }
+    var inputFile: String? { commonOptions.inputFile }
+    var outputFormat: OutputFormat? { commonOptions.outputFormat }
+    var verbosity: Verbosity? { commonOptions.verbosity }
+    var fullDescription: Bool { commonOptions.fullDescription }
 }
 
 enum LookupType {
@@ -167,14 +176,24 @@ enum LookupType {
 }
 
 struct LookupOptions {
+    let commonOptions: CommonOptions
     let lookupType: LookupType
-    let showRequest: Bool
-    let outputMode: OutputMode  // Legacy support
-    let storefront: String?  // Was 'country', using storefront for consistency
     let entity: String? // For related content lookups
-    let outputFile: String?
-    let inputFile: String?
-    let outputFormat: OutputFormat?
-    let verbosity: Verbosity?
-    let fullDescription: Bool
+
+    // Compatibility accessors for migration
+    var showRequest: Bool { commonOptions.showRequest }
+    var outputMode: OutputMode {
+        OutputOptions(
+            format: commonOptions.outputFormat,
+            verbosity: commonOptions.verbosity,
+            outputFile: commonOptions.outputFile,
+            inputFile: commonOptions.inputFile
+        ).asOutputMode ?? .summary
+    }
+    var storefront: String? { commonOptions.storefront }
+    var outputFile: String? { commonOptions.outputFile }
+    var inputFile: String? { commonOptions.inputFile }
+    var outputFormat: OutputFormat? { commonOptions.outputFormat }
+    var verbosity: Verbosity? { commonOptions.verbosity }
+    var fullDescription: Bool { commonOptions.fullDescription }
 }

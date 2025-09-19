@@ -4,7 +4,9 @@ class LookupCommand {
     private let api = AppStoreAPI()
 
     func execute(options: LookupOptions) async {
-        if options.outputMode != .json && !options.showRequest {
+        let outputManager = OutputManager(options: options.commonOptions)
+
+        if options.commonOptions.outputFormat != .json && !options.commonOptions.showRequest {
             let description = describeLookup(options)
             print("Looking up \(description)...")
             print()
@@ -13,43 +15,18 @@ class LookupCommand {
         do {
             let result = try await api.lookupWithRawData(
                 lookupType: options.lookupType,
-                storefront: options.storefront,
+                storefront: options.commonOptions.storefront,
                 entity: options.entity,
-                showRequest: options.showRequest
+                showRequest: options.commonOptions.showRequest
             )
 
-            if result.apps.isEmpty {
+            if result.apps.isEmpty && options.commonOptions.outputFormat != .json {
                 print("No results found")
                 return
             }
 
-            let searchCommand = SearchCommand()
-
-            switch options.outputMode {
-            case .json:
-                // Show JSON output
-                let jsonObject = try JSONSerialization.jsonObject(with: result.rawData, options: [])
-                let prettyData = try JSONSerialization.data(withJSONObject: jsonObject, options: [.prettyPrinted, .sortedKeys])
-
-                if let jsonString = String(data: prettyData, encoding: .utf8) {
-                    print(jsonString)
-                }
-            case .oneline:
-                print("Found \(result.apps.count) result(s):")
-                searchCommand.printOneline(apps: result.apps)
-            case .summary:
-                print("Found \(result.apps.count) result(s):")
-                searchCommand.printSummary(apps: result.apps)
-            case .expanded:
-                print("Found \(result.apps.count) result(s):")
-                searchCommand.printExpanded(apps: result.apps)
-            case .verbose:
-                print("Found \(result.apps.count) result(s):")
-                searchCommand.printVerbose(apps: result.apps)
-            case .complete:
-                print("Found \(result.apps.count) result(s):")
-                searchCommand.printComplete(apps: result.apps, rawData: result.rawData)
-            }
+            // Use OutputManager to handle all output
+            outputManager.outputLookupResults(result.apps)
 
         } catch {
             print("Error: \(error.localizedDescription)")
