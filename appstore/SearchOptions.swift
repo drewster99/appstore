@@ -152,6 +152,7 @@ struct SearchOptions {
     // New fields for format/verbosity separation
     let outputFormat: OutputFormat?
     let verbosity: Verbosity?
+    let fullDescription: Bool
 
     static let defaultLimit = 20
     static let maxLimit = 200
@@ -173,4 +174,5 @@ struct LookupOptions {
     let entity: String? // For related content lookups
     let outputFile: String?
     let inputFile: String?
+    let fullDescription: Bool
 }

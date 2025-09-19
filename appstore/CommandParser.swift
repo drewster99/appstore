@@ -48,6 +48,7 @@ class CommandParser {
                 var genre = EnvironmentConfig.defaultGenre
                 var outputFile: String?
                 var inputFile: String?
+                var fullDescription = false
                 var searchTerms = Array(arguments.dropFirst(2))
 
                 // Process all flags
@@ -202,6 +203,10 @@ class CommandParser {
                             return .searchHelp
                         }
 
+                    case "--full-description":
+                        fullDescription = true
+                        searchTerms.remove(at: i)
+
                     default:
                         // Check if it's an unknown flag
                         if searchTerms[i].hasPrefix("--") || (searchTerms[i].hasPrefix("-") && searchTerms[i] != "-") {
@@ -262,7 +267,8 @@ class CommandParser {
                     outputFile: outputFile,
                     inputFile: inputFile,
                     outputFormat: outputFormat,
-                    verbosity: verbosity
+                    verbosity: verbosity,
+                    fullDescription: fullDescription
                 )
                 return .search(options: options)
             } else {
@@ -312,6 +318,7 @@ class CommandParser {
             var entity: String?
             var outputFile: String?
             var inputFile: String?
+            var fullDescription = false
             var args = Array(arguments.dropFirst(3)) // Skip the value we already processed
 
             // Process remaining flags
@@ -374,6 +381,10 @@ class CommandParser {
                         return .lookupHelp
                     }
 
+                case "--full-description":
+                    fullDescription = true
+                    args.remove(at: i)
+
                 default:
                     if args[i].hasPrefix("--") || (args[i].hasPrefix("-") && args[i] != "-") {
                         print("Error: Unknown option '\(args[i])'")
@@ -391,7 +402,8 @@ class CommandParser {
                 storefront: storefront,
                 entity: entity,
                 outputFile: outputFile,
-                inputFile: inputFile
+                inputFile: inputFile,
+                fullDescription: fullDescription
             )
             return .lookup(options: options)
         }
@@ -402,6 +414,7 @@ class CommandParser {
         var entity: String?
         var outputFile: String?
         var inputFile: String?
+        var fullDescription = false
         var lookupType: LookupType?
         var args = Array(arguments.dropFirst(2))
 
@@ -516,6 +529,10 @@ class CommandParser {
                     return .lookupHelp
                 }
 
+            case "--full-description":
+                fullDescription = true
+                args.remove(at: i)
+
             default:
                 // Check if it's an unknown flag
                 if args[i].hasPrefix("--") || (args[i].hasPrefix("-") && args[i] != "-") {
@@ -545,7 +562,8 @@ class CommandParser {
             storefront: storefront,
             entity: entity,
             outputFile: outputFile,
-            inputFile: inputFile
+            inputFile: inputFile,
+            fullDescription: fullDescription
         )
         return .lookup(options: options)
     }

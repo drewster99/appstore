@@ -2,7 +2,7 @@ import Foundation
 
 class MarkdownFormatter {
 
-    static func formatSearchResults(_ apps: [App], verbosity: Verbosity) -> String {
+    static func formatSearchResults(_ apps: [App], verbosity: Verbosity, fullDescription: Bool = false) -> String {
         var output = ""
 
         // Header
@@ -20,7 +20,7 @@ class MarkdownFormatter {
 
         // App details
         for (index, app) in apps.enumerated() {
-            output += formatApp(app, index: index + 1, verbosity: verbosity)
+            output += formatApp(app, index: index + 1, verbosity: verbosity, fullDescription: fullDescription)
             if index < apps.count - 1 {
                 output += "\n---\n\n"
             }
@@ -73,7 +73,7 @@ class MarkdownFormatter {
         return output
     }
 
-    private static func formatApp(_ app: App, index: Int, verbosity: Verbosity) -> String {
+    private static func formatApp(_ app: App, index: Int, verbosity: Verbosity, fullDescription: Bool = false) -> String {
         var output = ""
 
         switch verbosity {
@@ -101,7 +101,9 @@ class MarkdownFormatter {
             output += "- **Version:** \(app.version)\n"
             output += "- **Bundle ID:** `\(app.bundleId)`\n"
 
-            if let description = app.description.split(separator: "\n").first {
+            if fullDescription {
+                output += "\n### Description\n\(app.description)\n"
+            } else if let description = app.description.split(separator: "\n").first {
                 let maxLength = 150
                 let truncated = description.count > maxLength ? String(description.prefix(maxLength)) + "..." : String(description)
                 output += "\n### Description\n\(truncated)\n"
@@ -154,7 +156,9 @@ class MarkdownFormatter {
                 }
             }
 
-            if let description = app.description.split(separator: "\n").first {
+            if fullDescription {
+                output += "\n### Description\n\(app.description)\n"
+            } else if let description = app.description.split(separator: "\n").first {
                 let maxLength = 200
                 let truncated = description.count > maxLength ? String(description.prefix(maxLength)) + "..." : String(description)
                 output += "\n### Description\n\(truncated)\n"

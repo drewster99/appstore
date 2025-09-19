@@ -46,7 +46,7 @@ class SearchCommand {
             // Check if we should use special format (markdown, html, etc)
             if let format = options.outputFormat, format == .markdown {
                 let verbosity = options.verbosity ?? .summary
-                let markdownOutput = MarkdownFormatter.formatSearchResults(result.apps, verbosity: verbosity)
+                let markdownOutput = MarkdownFormatter.formatSearchResults(result.apps, verbosity: verbosity, fullDescription: options.fullDescription)
                 print(markdownOutput)
             } else {
                 switch options.outputMode {
@@ -59,13 +59,13 @@ class SearchCommand {
                     printOneline(apps: result.apps)
                 case .summary:
                     print("Found \(result.apps.count) result(s):")
-                    printSummary(apps: result.apps)
+                    printSummary(apps: result.apps, fullDescription: options.fullDescription)
                 case .expanded:
                     print("Found \(result.apps.count) result(s):")
-                    printExpanded(apps: result.apps)
+                    printExpanded(apps: result.apps, fullDescription: options.fullDescription)
                 case .verbose:
                     print("Found \(result.apps.count) result(s):")
-                    printVerbose(apps: result.apps)
+                    printVerbose(apps: result.apps, fullDescription: options.fullDescription)
                 case .complete:
                     print("Found \(result.apps.count) result(s):")
                     printComplete(apps: result.apps, rawData: result.rawData)
@@ -87,7 +87,7 @@ class SearchCommand {
         }
     }
 
-    func printSummary(apps: [App]) {
+    func printSummary(apps: [App], fullDescription: Bool = false) {
         print(String(repeating: "-", count: 80))
 
         for (index, app) in apps.enumerated() {
@@ -106,7 +106,9 @@ class SearchCommand {
             print("   Version: \(app.version)")
             print("   Bundle ID: \(app.bundleId)")
 
-            if let description = app.description.split(separator: "\n").first {
+            if fullDescription {
+                print("   Description: \(app.description.replacingOccurrences(of: "\n", with: " "))")
+            } else if let description = app.description.split(separator: "\n").first {
                 let maxLength = 150
                 let truncated = description.count > maxLength ? String(description.prefix(maxLength)) + "..." : String(description)
                 print("   Description: \(truncated)")
@@ -120,7 +122,7 @@ class SearchCommand {
         print(String(repeating: "=", count: 80))
     }
 
-    func printExpanded(apps: [App]) {
+    func printExpanded(apps: [App], fullDescription: Bool = false) {
         print(String(repeating: "-", count: 80))
 
         for (index, app) in apps.enumerated() {
@@ -164,7 +166,9 @@ class SearchCommand {
                 }
             }
 
-            if let description = app.description.split(separator: "\n").first {
+            if fullDescription {
+                print("   Description: \(app.description.replacingOccurrences(of: "\n", with: " "))")
+            } else if let description = app.description.split(separator: "\n").first {
                 let maxLength = 150
                 let truncated = description.count > maxLength ? String(description.prefix(maxLength)) + "..." : String(description)
                 print("   Description: \(truncated)")
@@ -178,7 +182,7 @@ class SearchCommand {
         print(String(repeating: "=", count: 80))
     }
 
-    func printVerbose(apps: [App]) {
+    func printVerbose(apps: [App], fullDescription: Bool = false) {
         print(String(repeating: "-", count: 80))
 
         for (index, app) in apps.enumerated() {
@@ -253,7 +257,9 @@ class SearchCommand {
                 }
             }
 
-            if let description = app.description.split(separator: "\n").first {
+            if fullDescription {
+                print("   Description: \(app.description.replacingOccurrences(of: "\n", with: " "))")
+            } else if let description = app.description.split(separator: "\n").first {
                 let maxLength = 200
                 let truncated = description.count > maxLength ? String(description.prefix(maxLength)) + "..." : String(description)
                 print("   Description: \(truncated)")
