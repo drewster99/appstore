@@ -79,6 +79,28 @@ class AppStoreAPI {
         self.session = session
     }
 
+    private func handleAPIResponse(data: Data, response: URLResponse, storefront: String? = nil, attribute: String? = nil) throws {
+        // Check HTTP response for errors
+        if let httpResponse = response as? HTTPURLResponse {
+            if httpResponse.statusCode == 400 || httpResponse.statusCode == 403 {
+                // Try to parse error message from response
+                if let errorJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let errorMessage = errorJson["errorMessage"] as? String {
+                    // Check for specific known errors
+                    if errorMessage.contains("Invalid value") {
+                        if errorMessage.contains("attribute") && attribute != nil {
+                            throw AppStoreAPIError.decodingError("Invalid attribute parameter '\(attribute ?? "")'. Use 'appstore search --attribute' to see valid options.")
+                        } else if errorMessage.contains("country") && storefront != nil {
+                            throw AppStoreAPIError.decodingError("Invalid storefront code '\(storefront ?? "")'. Use two-letter ISO country codes (e.g., us, gb, jp).")
+                        }
+                    }
+                    throw AppStoreAPIError.decodingError("API Error: \(errorMessage)")
+                }
+                throw AppStoreAPIError.decodingError("Invalid request parameters (HTTP \(httpResponse.statusCode))")
+            }
+        }
+    }
+
     func search(query: String, limit: Int = 20, storefront: String? = nil, attribute: String? = nil, genre: Int? = nil) async throws -> [App] {
         let result = try await searchWithRawData(query: query, limit: limit, storefront: storefront, attribute: attribute, genre: genre)
         return result.apps
@@ -127,18 +149,28 @@ class AppStoreAPI {
         }
 
         do {
-            let (data, _) = try await session.data(from: url)
+            let (data, response) = try await session.data(from: url)
+
+            // Check for HTTP errors
+            try handleAPIResponse(data: data, response: response, storefront: storefront, attribute: attribute)
 
             guard !data.isEmpty else {
                 throw AppStoreAPIError.noData
             }
 
             let decoder = JSONDecoder()
-            let searchResult = try decoder.decode(AppStoreSearchResult.self, from: data)
-            return (apps: searchResult.results, rawData: data)
+            do {
+                let searchResult = try decoder.decode(AppStoreSearchResult.self, from: data)
+                return (apps: searchResult.results, rawData: data)
+            } catch {
+                // Try to extract error message from response if decoding failed
+                if let errorJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let errorMessage = errorJson["errorMessage"] as? String {
+                    throw AppStoreAPIError.decodingError(errorMessage)
+                }
+                throw AppStoreAPIError.decodingError("Failed to parse App Store response. This may be due to invalid parameters.")
+            }
 
-        } catch let error as DecodingError {
-            throw AppStoreAPIError.decodingError(error.localizedDescription)
         } catch let error as AppStoreAPIError {
             throw error
         } catch {
@@ -195,18 +227,28 @@ class AppStoreAPI {
         }
 
         do {
-            let (data, _) = try await session.data(from: url)
+            let (data, response) = try await session.data(from: url)
+
+            // Check for HTTP errors
+            try handleAPIResponse(data: data, response: response, storefront: storefront)
 
             guard !data.isEmpty else {
                 throw AppStoreAPIError.noData
             }
 
             let decoder = JSONDecoder()
-            let searchResult = try decoder.decode(AppStoreSearchResult.self, from: data)
-            return (apps: searchResult.results, rawData: data)
+            do {
+                let searchResult = try decoder.decode(AppStoreSearchResult.self, from: data)
+                return (apps: searchResult.results, rawData: data)
+            } catch {
+                // Try to extract error message from response if decoding failed
+                if let errorJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let errorMessage = errorJson["errorMessage"] as? String {
+                    throw AppStoreAPIError.decodingError(errorMessage)
+                }
+                throw AppStoreAPIError.decodingError("Failed to parse App Store response. This may be due to invalid parameters.")
+            }
 
-        } catch let error as DecodingError {
-            throw AppStoreAPIError.decodingError(error.localizedDescription)
         } catch let error as AppStoreAPIError {
             throw error
         } catch {
