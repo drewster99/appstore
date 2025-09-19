@@ -107,8 +107,12 @@ class CommandParser {
                             attribute = searchTerms[i]
                             searchTerms.remove(at: i)
                         } else {
-                            print("Available attributes:")
-                            for attr in SearchAttribute.allCases {
+                            print("Recommended attributes for app search:")
+                            for attr in SearchAttribute.allCases where attr.isRecommendedForSoftware {
+                                print("  \(attr.rawValue) - \(attr.description)")
+                            }
+                            print("\nOther available attributes (less useful for apps):")
+                            for attr in SearchAttribute.allCases where !attr.isRecommendedForSoftware {
                                 print("  \(attr.rawValue) - \(attr.description)")
                             }
                             return .searchHelp
