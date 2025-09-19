@@ -147,6 +147,8 @@ struct SearchOptions {
     let storefront: String?  // Was 'country', using storefront for consistency
     let attribute: String?
     let genre: Int?
+    let outputFile: String?
+    let inputFile: String?
 
     static let defaultLimit = 20
     static let maxLimit = 200
@@ -166,4 +168,6 @@ struct LookupOptions {
     let outputMode: OutputMode
     let storefront: String?  // Was 'country', using storefront for consistency
     let entity: String? // For related content lookups
+    let outputFile: String?
+    let inputFile: String?
 }

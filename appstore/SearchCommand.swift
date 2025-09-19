@@ -4,10 +4,17 @@ class SearchCommand {
     private let api = AppStoreAPI()
 
     func execute(options: SearchOptions) async {
+        // Handle input file if specified
+        if let inputFile = options.inputFile {
+            await handleInputFile(inputFile, options: options)
+            return
+        }
         if options.outputMode != .json && !options.showRequest {
             print("Searching App Store for: \"\(options.query)\"...")
             print()
         }
+
+        let startTime = Date()
 
         do {
             let result = try await api.searchWithRawData(
@@ -19,20 +26,28 @@ class SearchCommand {
                 showRequest: options.showRequest
             )
 
-            if result.apps.isEmpty {
+            let endTime = Date()
+            let durationMs = Int(endTime.timeIntervalSince(startTime) * 1000)
+
+            if result.apps.isEmpty && options.outputMode != .json {
                 print("No results found for \"\(options.query)\"")
+                return
+            }
+
+            // Handle output file if specified
+            if let outputFile = options.outputFile {
+                try await saveToFile(result: result, options: options, durationMs: durationMs, outputFile: outputFile)
+                if options.outputMode != .json {
+                    print("Results saved to: \(outputFile)")
+                }
                 return
             }
 
             switch options.outputMode {
             case .json:
-                // Show JSON output
-                let jsonObject = try JSONSerialization.jsonObject(with: result.rawData, options: [])
-                let prettyData = try JSONSerialization.data(withJSONObject: jsonObject, options: [.prettyPrinted, .sortedKeys])
-
-                if let jsonString = String(data: prettyData, encoding: .utf8) {
-                    print(jsonString)
-                }
+                // Show JSON output with metadata wrapper
+                let output = createJSONOutput(result: result, options: options, durationMs: durationMs)
+                print(output)
             case .oneline:
                 print("Found \(result.apps.count) result(s):")
                 printOneline(apps: result.apps)
@@ -271,6 +286,118 @@ class SearchCommand {
 
         } catch {
             print("Error processing complete output: \(error)")
+        }
+    }
+
+    // MARK: - File I/O Support
+
+    private func handleInputFile(_ inputFile: String, options: SearchOptions) async {
+        do {
+            let data = try Data(contentsOf: URL(fileURLWithPath: inputFile))
+
+            // Try to parse as our metadata wrapper format first
+            if let metadata = try? JSONDecoder().decode(AppStoreResponseMetadata.self, from: data) {
+                print("Loaded from file: \(inputFile)")
+                print("Original command: \(metadata.command)")
+                print("Original timestamp: \(metadata.timestamp)")
+                print()
+            }
+
+            // Extract the actual results
+            let jsonObject = try JSONSerialization.jsonObject(with: data)
+
+            // Check if it's wrapped or raw
+            var resultsData: Data
+            if let wrapped = jsonObject as? [String: Any], let dataObject = wrapped["data"] {
+                resultsData = try JSONSerialization.data(withJSONObject: dataObject)
+            } else {
+                resultsData = data
+            }
+
+            // Parse and display
+            let searchResult = try JSONDecoder().decode(AppStoreSearchResult.self, from: resultsData)
+
+            switch options.outputMode {
+            case .json:
+                let prettyData = try JSONSerialization.data(withJSONObject: jsonObject, options: [.prettyPrinted, .sortedKeys])
+                if let jsonString = String(data: prettyData, encoding: .utf8) {
+                    print(jsonString)
+                }
+            case .oneline:
+                print("Found \(searchResult.results.count) result(s) from file:")
+                printOneline(apps: searchResult.results)
+            case .summary:
+                print("Found \(searchResult.results.count) result(s) from file:")
+                printSummary(apps: searchResult.results)
+            case .expanded:
+                print("Found \(searchResult.results.count) result(s) from file:")
+                printExpanded(apps: searchResult.results)
+            case .verbose:
+                print("Found \(searchResult.results.count) result(s) from file:")
+                printVerbose(apps: searchResult.results)
+            case .complete:
+                print("Found \(searchResult.results.count) result(s) from file:")
+                printComplete(apps: searchResult.results, rawData: resultsData)
+            }
+
+        } catch {
+            print("Error reading input file: \(error)")
+        }
+    }
+
+    private func saveToFile(result: (apps: [App], rawData: Data), options: SearchOptions, durationMs: Int, outputFile: String) async throws {
+        let output: String
+        if options.outputMode == .json {
+            output = createJSONOutput(result: result, options: options, durationMs: durationMs)
+        } else {
+            // For non-JSON modes, save as JSON with metadata
+            output = createJSONOutput(result: result, options: options, durationMs: durationMs)
+        }
+
+        try output.write(toFile: outputFile, atomically: true, encoding: .utf8)
+    }
+
+    private func createJSONOutput(result: (apps: [App], rawData: Data), options: SearchOptions, durationMs: Int) -> String {
+        do {
+            // Parse the raw data
+            let jsonObject = try JSONSerialization.jsonObject(with: result.rawData, options: [])
+
+            // Create metadata
+            let metadata: [String: Any] = [
+                "version": 1,
+                "id": UUID().uuidString,
+                "timestamp": ISO8601DateFormatter().string(from: Date()),
+                "command": "search",
+                "parameters": [
+                    "query": options.query,
+                    "limit": options.limit,
+                    "storefront": options.storefront as Any,
+                    "attribute": options.attribute as Any,
+                    "genre": options.genre as Any
+                ],
+                "request": [
+                    "url": "https://itunes.apple.com/search",
+                    "method": "GET"
+                ],
+                "response": [
+                    "httpStatus": 200,
+                    "timestamp": ISO8601DateFormatter().string(from: Date()),
+                    "durationMs": durationMs,
+                    "resultCount": result.apps.count
+                ]
+            ]
+
+            // Wrap the data
+            let wrapped: [String: Any] = [
+                "metadata": metadata,
+                "data": jsonObject
+            ]
+
+            let prettyData = try JSONSerialization.data(withJSONObject: wrapped, options: [.prettyPrinted, .sortedKeys])
+            return String(data: prettyData, encoding: .utf8) ?? "{}"
+
+        } catch {
+            return "{\"error\": \"Failed to create JSON output: \(error)\"}"
         }
     }
 }

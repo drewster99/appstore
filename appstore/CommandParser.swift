@@ -44,6 +44,8 @@ class CommandParser {
                 var storefront = EnvironmentConfig.defaultStorefront != "us" ? EnvironmentConfig.defaultStorefront : nil
                 var attribute = EnvironmentConfig.defaultAttribute
                 var genre = EnvironmentConfig.defaultGenre
+                var outputFile: String?
+                var inputFile: String?
                 var searchTerms = Array(arguments.dropFirst(2))
 
                 // Process all flags
@@ -138,6 +140,26 @@ class CommandParser {
                             return .searchHelp
                         }
 
+                    case "--output-file", "-o":
+                        searchTerms.remove(at: i)
+                        if i < searchTerms.count {
+                            outputFile = searchTerms[i]
+                            searchTerms.remove(at: i)
+                        } else {
+                            print("Error: --output-file requires a file path")
+                            return .searchHelp
+                        }
+
+                    case "--input-file", "-i":
+                        searchTerms.remove(at: i)
+                        if i < searchTerms.count {
+                            inputFile = searchTerms[i]
+                            searchTerms.remove(at: i)
+                        } else {
+                            print("Error: --input-file requires a file path")
+                            return .searchHelp
+                        }
+
                     default:
                         // Check if it's an unknown flag
                         if searchTerms[i].hasPrefix("--") || (searchTerms[i].hasPrefix("-") && searchTerms[i] != "-") {
@@ -162,7 +184,9 @@ class CommandParser {
                     outputMode: outputMode,
                     storefront: storefront,
                     attribute: attribute,
-                    genre: genre
+                    genre: genre,
+                    outputFile: outputFile,
+                    inputFile: inputFile
                 )
                 return .search(options: options)
             } else {
@@ -210,6 +234,8 @@ class CommandParser {
             var outputMode = OutputMode.default
             var storefront = EnvironmentConfig.defaultStorefront != "us" ? EnvironmentConfig.defaultStorefront : nil
             var entity: String?
+            var outputFile: String?
+            var inputFile: String?
             var args = Array(arguments.dropFirst(3)) // Skip the value we already processed
 
             // Process remaining flags
@@ -252,6 +278,26 @@ class CommandParser {
                         return .lookupHelp
                     }
 
+                case "--output-file", "-o":
+                    args.remove(at: i)
+                    if i < args.count {
+                        outputFile = args[i]
+                        args.remove(at: i)
+                    } else {
+                        print("Error: --output-file requires a file path")
+                        return .lookupHelp
+                    }
+
+                case "--input-file", "-i":
+                    args.remove(at: i)
+                    if i < args.count {
+                        inputFile = args[i]
+                        args.remove(at: i)
+                    } else {
+                        print("Error: --input-file requires a file path")
+                        return .lookupHelp
+                    }
+
                 default:
                     if args[i].hasPrefix("--") || (args[i].hasPrefix("-") && args[i] != "-") {
                         print("Error: Unknown option '\(args[i])'")
@@ -267,7 +313,9 @@ class CommandParser {
                 showRequest: showRequest,
                 outputMode: outputMode,
                 storefront: storefront,
-                entity: entity
+                entity: entity,
+                outputFile: outputFile,
+                inputFile: inputFile
             )
             return .lookup(options: options)
         }
@@ -276,6 +324,8 @@ class CommandParser {
         var outputMode = OutputMode.default
         var storefront = EnvironmentConfig.defaultStorefront != "us" ? EnvironmentConfig.defaultStorefront : nil
         var entity: String?
+        var outputFile: String?
+        var inputFile: String?
         var lookupType: LookupType?
         var args = Array(arguments.dropFirst(2))
 
@@ -370,6 +420,26 @@ class CommandParser {
                     return .lookupHelp
                 }
 
+            case "--output-file", "-o":
+                args.remove(at: i)
+                if i < args.count {
+                    outputFile = args[i]
+                    args.remove(at: i)
+                } else {
+                    print("Error: --output-file requires a file path")
+                    return .lookupHelp
+                }
+
+            case "--input-file", "-i":
+                args.remove(at: i)
+                if i < args.count {
+                    inputFile = args[i]
+                    args.remove(at: i)
+                } else {
+                    print("Error: --input-file requires a file path")
+                    return .lookupHelp
+                }
+
             default:
                 // Check if it's an unknown flag
                 if args[i].hasPrefix("--") || (args[i].hasPrefix("-") && args[i] != "-") {
@@ -397,7 +467,9 @@ class CommandParser {
             showRequest: showRequest,
             outputMode: outputMode,
             storefront: storefront,
-            entity: entity
+            entity: entity,
+            outputFile: outputFile,
+            inputFile: inputFile
         )
         return .lookup(options: options)
     }
