@@ -176,19 +176,19 @@ class HelpCommand {
 
         GENRE IDS (Common):
             6000 - Business               6014 - Games
-            6001 - Weather                6015 - Entertainment
-            6002 - Utilities              6016 - Finance
-            6003 - Travel                 6017 - Medical
-            6004 - Sports                 6018 - Navigation
-            6005 - Social Networking      6020 - Reference
-            6006 - Productivity           6021 - Health & Fitness
-            6007 - Photo & Video          6022 - Music
-            6008 - News                   6023 - Food & Drink
-            6009 - Graphics & Design      6024 - Lifestyle
-            6010 - Developer Tools        6025 - Magazines & Newspapers
-            6011 - Reference              6026 - Shopping
-            6012 - Medical                6027 - Stickers
-            6013 - Music
+            6001 - Weather                6015 - Finance
+            6002 - Utilities              6016 - Entertainment
+            6003 - Travel                 6017 - Education
+            6004 - Sports                 6018 - Books
+            6005 - Social Networking      6020 - Medical
+            6006 - Reference              6021 - Magazines & Newspapers
+            6007 - Productivity           6022 - Catalogs
+            6008 - Photo & Video          6023 - Food & Drink
+            6009 - News                   6024 - Shopping
+            6010 - Navigation             6025 - Stickers
+            6011 - Music                  6026 - Developer Tools
+            6012 - Lifestyle              6027 - Graphics & Design
+            6013 - Health & Fitness
 
         EXAMPLES:
             appstore top free                      # Top free apps (US)
@@ -222,12 +222,14 @@ class HelpCommand {
         Commands:
           search <query>    Search for apps
           lookup            Look up specific apps
-          top [chart]       View top charts
+          top <chart>       View top charts
+          list <type>       List available values
 
         Examples:
           appstore search twitter
           appstore lookup --id 284910350
           appstore top paid
+          appstore list genres
 
         Try 'appstore --help' for more information.
         """)
