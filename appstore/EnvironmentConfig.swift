@@ -38,11 +38,25 @@ struct EnvironmentConfig {
     static let defaultAttribute = ProcessInfo.processInfo.environment["APPSTORE_DEFAULT_ATTRIBUTE"]
 
     static var defaultChartType: TopChartType {
-        guard let value = ProcessInfo.processInfo.environment["APPSTORE_DEFAULT_CHART_TYPE"],
-              let chartType = TopChartType(rawValue: value.lowercased()) else {
+        guard let value = ProcessInfo.processInfo.environment["APPSTORE_DEFAULT_CHART_TYPE"] else {
             return .free
         }
-        return chartType
+
+        // Map common names to chart types
+        switch value.lowercased() {
+        case "free", "topfree", "topfreeapplications":
+            return .free
+        case "paid", "toppaid", "toppaidapplications":
+            return .paid
+        case "grossing", "topgrossing", "topgrossingapplications":
+            return .grossing
+        case "newfree", "new-free", "newfreeapplications":
+            return .newFree
+        case "newpaid", "new-paid", "newpaidapplications":
+            return .newPaid
+        default:
+            return .free
+        }
     }
 
     // Behavior

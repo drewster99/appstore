@@ -36,12 +36,12 @@ class CommandParser {
                     return .searchHelp
                 }
 
-                var showRequest = false
-                var limit = SearchOptions.defaultLimit
+                var showRequest = EnvironmentConfig.showRequest
+                var limit = EnvironmentConfig.defaultLimit ?? SearchOptions.defaultLimit
                 var outputMode = OutputMode.default
-                var storefront: String?
-                var attribute: String?
-                var genre: Int?
+                var storefront = EnvironmentConfig.defaultStorefront != "us" ? EnvironmentConfig.defaultStorefront : nil
+                var attribute = EnvironmentConfig.defaultAttribute
+                var genre = EnvironmentConfig.defaultGenre
                 var searchTerms = Array(arguments.dropFirst(2))
 
                 // Process all flags
@@ -201,9 +201,9 @@ class CommandParser {
             }
 
             // Check if there are additional options after the value
-            var showRequest = false
+            var showRequest = EnvironmentConfig.showRequest
             var outputMode = OutputMode.default
-            var storefront: String?
+            var storefront = EnvironmentConfig.defaultStorefront != "us" ? EnvironmentConfig.defaultStorefront : nil
             var entity: String?
             var args = Array(arguments.dropFirst(3)) // Skip the value we already processed
 
@@ -267,9 +267,9 @@ class CommandParser {
             return .lookup(options: options)
         }
 
-        var showRequest = false
+        var showRequest = EnvironmentConfig.showRequest
         var outputMode = OutputMode.default
-        var storefront: String?
+        var storefront = EnvironmentConfig.defaultStorefront != "us" ? EnvironmentConfig.defaultStorefront : nil
         var entity: String?
         var lookupType: LookupType?
         var args = Array(arguments.dropFirst(2))
@@ -400,12 +400,12 @@ class CommandParser {
     private func parseTopCommand() -> Command {
         // If just "appstore top", default to top free
         if arguments.count == 2 {
-            // Use default options
+            // Use default options with environment config
             let options = TopOptions(
-                chartType: .free,
-                limit: 25,
-                storefront: "us",
-                genre: nil,
+                chartType: EnvironmentConfig.defaultChartType,
+                limit: EnvironmentConfig.defaultLimit ?? 25,
+                storefront: EnvironmentConfig.defaultStorefront,
+                genre: EnvironmentConfig.defaultGenre,
                 outputMode: OutputMode.default
             )
             return .top(options: options)
@@ -416,10 +416,10 @@ class CommandParser {
         }
 
         // Parse chart type (first non-flag argument)
-        var chartType = TopChartType.free // default
-        var limit = 25 // default for RSS feeds
-        var storefront = "us" // default
-        var genre: Int?
+        var chartType = EnvironmentConfig.defaultChartType
+        var limit = EnvironmentConfig.defaultLimit ?? 25
+        var storefront = EnvironmentConfig.defaultStorefront
+        var genre = EnvironmentConfig.defaultGenre
         var outputMode = OutputMode.default
         var args = Array(arguments.dropFirst(2))
 
