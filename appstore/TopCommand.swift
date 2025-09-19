@@ -129,13 +129,8 @@ class TopCommand {
             let amount = priceAttributes?["amount"] as? String ?? "0.00"
             let currency = priceAttributes?["currency"] as? String ?? "USD"
 
-            // Format price: Free for 0.00, otherwise show currency symbol
-            let price: String
-            if amount == "0.00" || amount == "0.00000" {
-                price = "Free"
-            } else {
-                price = currency == "USD" ? "$\(amount)" : "\(amount) \(currency)"
-            }
+            // Format price with currency
+            let price = currency == "USD" ? "$\(amount)" : "\(amount) \(currency)"
 
             // Get IDs
             let idAttributes = (entry["id"] as? [String: Any])?["attributes"] as? [String: Any]
@@ -157,13 +152,8 @@ class TopCommand {
             let amount = priceAttributes?["amount"] as? String ?? "0.00"
             let currency = priceAttributes?["currency"] as? String ?? "USD"
 
-            // Format price: Free for 0.00, otherwise show currency symbol
-            let price: String
-            if amount == "0.00" || amount == "0.00000" {
-                price = "Free"
-            } else {
-                price = currency == "USD" ? "$\(amount)" : "\(amount) \(currency)"
-            }
+            // Format price with currency
+            let price = currency == "USD" ? "$\(amount)" : "\(amount) \(currency)"
 
             let category = ((entry["category"] as? [String: Any])?["attributes"] as? [String: Any])?["label"] as? String ?? "Unknown"
 
