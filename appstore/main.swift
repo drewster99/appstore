@@ -25,6 +25,10 @@ struct AppStoreCLI {
             let topCommand = TopCommand()
             await topCommand.execute(options: options)
 
+        case .list(let options):
+            let listCommand = ListCommand()
+            listCommand.execute(options: options)
+
         case .searchHelp:
             HelpCommand.showSearchHelp()
 
@@ -33,6 +37,9 @@ struct AppStoreCLI {
 
         case .topHelp:
             HelpCommand.showTopHelp()
+
+        case .listHelp:
+            HelpCommand.showListHelp()
 
         case .help:
             HelpCommand.showGeneralHelp()

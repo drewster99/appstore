@@ -4,11 +4,13 @@ enum Command {
     case search(options: SearchOptions)
     case lookup(options: LookupOptions)
     case top(options: TopOptions)
+    case list(options: ListOptions)
     case help
     case usage
     case searchHelp
     case lookupHelp
     case topHelp
+    case listHelp
     case unknown(String)
 }
 
@@ -172,6 +174,9 @@ class CommandParser {
 
         case "top":
             return parseTopCommand()
+
+        case "list":
+            return parseListCommand()
 
         default:
             return .unknown(command)
@@ -549,5 +554,84 @@ class CommandParser {
             outputMode: outputMode
         )
         return .top(options: options)
+    }
+
+    private func parseListCommand() -> Command {
+        // If just "appstore list", show help
+        if arguments.count == 2 {
+            return .listHelp
+        }
+
+        if arguments.count > 2 && (arguments[2] == "--help" || arguments[2] == "-h") {
+            return .listHelp
+        }
+
+        var listType: ListType?
+        var outputMode = OutputMode.default
+        var args = Array(arguments.dropFirst(2))
+
+        // Check if first argument is a list type
+        if !args.isEmpty && !args[0].hasPrefix("--") && !args[0].hasPrefix("-") {
+            let typeString = args[0].lowercased()
+            switch typeString {
+            case "storefronts", "storefront", "countries", "country":
+                listType = .storefronts
+            case "genres", "genre", "categories", "category":
+                listType = .genres
+            case "attributes", "attribute":
+                listType = .attributes
+            case "charttypes", "charttype", "charts", "chart":
+                listType = .charttypes
+            default:
+                print("Error: Unknown list type '\(typeString)'")
+                print("Valid types: storefronts, genres, attributes, charttypes")
+                return .listHelp
+            }
+            args.removeFirst()
+        }
+
+        // Process flags
+        var i = 0
+        while i < args.count {
+            switch args[i] {
+            case "--output-mode":
+                args.remove(at: i)
+                if i < args.count {
+                    let modeString = args[i].lowercased()
+                    if let mode = OutputMode(rawValue: modeString) {
+                        outputMode = mode
+                        args.remove(at: i)
+                    } else {
+                        print("Error: Invalid output mode '\(args[i])'")
+                        print("Valid modes: \(OutputMode.allCases.map { $0.rawValue }.joined(separator: ", "))")
+                        return .listHelp
+                    }
+                } else {
+                    print("Available output modes:")
+                    for mode in OutputMode.allCases {
+                        print("  \(mode.rawValue) - \(mode.description)")
+                    }
+                    return .listHelp
+                }
+
+            default:
+                if args[i].hasPrefix("--") || (args[i].hasPrefix("-") && args[i] != "-") {
+                    print("Error: Unknown option '\(args[i])'")
+                    print("Use 'appstore list --help' to see available options.")
+                    return .listHelp
+                }
+                i += 1
+            }
+        }
+
+        guard let listType = listType else {
+            return .listHelp
+        }
+
+        let options = ListOptions(
+            listType: listType,
+            outputMode: outputMode
+        )
+        return .list(options: options)
     }
 }

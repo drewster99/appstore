@@ -12,12 +12,15 @@ class HelpCommand {
             search <query>    Search for apps by name, developer, or description
             lookup            Look up specific apps by ID, bundle ID, or URL
             top [chart]       View top charts from the App Store
+            list <type>       List available values for various options
 
         QUICK EXAMPLES:
             appstore search spotify
             appstore search --limit 5 "photo editor"
             appstore lookup 284910350              # numeric = app ID
             appstore lookup com.spotify.client     # non-numeric = bundle ID
+            appstore list storefronts              # list country codes
+            appstore list attributes               # list search attributes
 
         OPTIONS:
             --help, -h        Show help for any command
@@ -26,6 +29,7 @@ class HelpCommand {
             appstore search --help
             appstore lookup --help
             appstore top --help
+            appstore list --help
         """)
     }
 
@@ -226,6 +230,44 @@ class HelpCommand {
           appstore top paid
 
         Try 'appstore --help' for more information.
+        """)
+    }
+
+    static func showListHelp() {
+        print("""
+        appstore list - List available values for various options
+
+        USAGE:
+            appstore list <type> [--output-mode <mode>]
+
+        LIST TYPES:
+            storefronts    List all available App Store storefronts/country codes
+            genres         List all genre IDs for App Store categories
+            attributes     List all search attributes for refined searches
+            charttypes     List all chart types for top lists
+
+        OPTIONS:
+            --output-mode <mode>  Output format (summary, json)
+
+        EXAMPLES:
+            appstore list storefronts
+            appstore list genres
+            appstore list attributes
+            appstore list charttypes
+            appstore list storefronts --output-mode json
+
+        ALIASES:
+            You can use singular or plural forms:
+                storefront/storefronts, country/countries
+                genre/genres, category/categories
+                attribute/attributes
+                charttype/charttypes, chart/charts
+
+        The list command helps you discover valid values to use with:
+            --storefront   (for search, lookup, and top commands)
+            --genre        (for search and top commands)
+            --attribute    (for search command)
+            Chart types    (for top command)
         """)
     }
 }
