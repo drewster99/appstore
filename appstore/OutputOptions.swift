@@ -132,7 +132,13 @@ struct OutputOptions {
                 return .complete
             }
         }
+        // For markdown and HTML, we'll handle them specially
         return nil
+    }
+
+    // Check if this is a special format that needs custom handling
+    var isSpecialFormat: Bool {
+        return format == .markdown || format == .html || format == .htmlOpen
     }
 }
 

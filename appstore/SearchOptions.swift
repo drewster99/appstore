@@ -149,6 +149,9 @@ struct SearchOptions {
     let genre: Int?
     let outputFile: String?
     let inputFile: String?
+    // New fields for format/verbosity separation
+    let outputFormat: OutputFormat?
+    let verbosity: Verbosity?
 
     static let defaultLimit = 20
     static let maxLimit = 200

@@ -41,6 +41,8 @@ class CommandParser {
                 var showRequest = EnvironmentConfig.showRequest
                 var limit = EnvironmentConfig.defaultLimit ?? SearchOptions.defaultLimit
                 var outputMode = OutputMode.default
+                var outputFormat: OutputFormat?
+                var verbosity: Verbosity?
                 var storefront = EnvironmentConfig.defaultStorefront != "us" ? EnvironmentConfig.defaultStorefront : nil
                 var attribute = EnvironmentConfig.defaultAttribute
                 var genre = EnvironmentConfig.defaultGenre
@@ -90,6 +92,46 @@ class CommandParser {
                             print("Available output modes:")
                             for mode in OutputMode.allCases {
                                 print("  \(mode.rawValue) - \(mode.description)")
+                            }
+                            return .searchHelp
+                        }
+
+                    case "--output-format", "--format":
+                        searchTerms.remove(at: i)
+                        if i < searchTerms.count {
+                            let formatString = searchTerms[i].lowercased()
+                            if let format = OutputFormat.from(cliName: formatString) {
+                                outputFormat = format
+                                searchTerms.remove(at: i)
+                            } else {
+                                print("Error: Invalid output format '\(searchTerms[i])'")
+                                print("Valid formats: text, json, html, html-open, markdown")
+                                return .searchHelp
+                            }
+                        } else {
+                            print("Available output formats:")
+                            for format in OutputFormat.allCases {
+                                print("  \(format.cliName) - \(format.description)")
+                            }
+                            return .searchHelp
+                        }
+
+                    case "--verbosity", "-v":
+                        searchTerms.remove(at: i)
+                        if i < searchTerms.count {
+                            let verbosityString = searchTerms[i].lowercased()
+                            if let v = Verbosity(rawValue: verbosityString) {
+                                verbosity = v
+                                searchTerms.remove(at: i)
+                            } else {
+                                print("Error: Invalid verbosity level '\(searchTerms[i])'")
+                                print("Valid levels: \(Verbosity.allCases.map { $0.rawValue }.joined(separator: ", "))")
+                                return .searchHelp
+                            }
+                        } else {
+                            print("Available verbosity levels:")
+                            for v in Verbosity.allCases {
+                                print("  \(v.rawValue) - \(v.description)")
                             }
                             return .searchHelp
                         }
@@ -177,16 +219,50 @@ class CommandParser {
                 }
 
                 let query = searchTerms.joined(separator: " ")
+
+                // If new format/verbosity flags are used, create OutputMode from them
+                // Otherwise use the legacy outputMode
+                let finalOutputMode: OutputMode
+                if let format = outputFormat, let v = verbosity {
+                    // Both new flags specified
+                    let options = OutputOptions(format: format, verbosity: v, outputFile: nil, inputFile: nil)
+                    if let mode = options.asOutputMode {
+                        finalOutputMode = mode
+                    } else {
+                        // Special format like markdown - use a placeholder
+                        // We'll handle this in SearchCommand
+                        finalOutputMode = .summary  // Default fallback
+                    }
+                } else if let format = outputFormat {
+                    // Only format specified, use default verbosity
+                    let options = OutputOptions(format: format, verbosity: .summary, outputFile: nil, inputFile: nil)
+                    if let mode = options.asOutputMode {
+                        finalOutputMode = mode
+                    } else {
+                        // Special format like markdown
+                        finalOutputMode = .summary  // Default fallback
+                    }
+                } else if let v = verbosity {
+                    // Only verbosity specified, use text format
+                    let options = OutputOptions(format: .text, verbosity: v, outputFile: nil, inputFile: nil)
+                    finalOutputMode = options.asOutputMode ?? outputMode
+                } else {
+                    // Use legacy outputMode
+                    finalOutputMode = outputMode
+                }
+
                 let options = SearchOptions(
                     query: query,
                     showRequest: showRequest,
                     limit: limit,
-                    outputMode: outputMode,
+                    outputMode: finalOutputMode,
                     storefront: storefront,
                     attribute: attribute,
                     genre: genre,
                     outputFile: outputFile,
-                    inputFile: inputFile
+                    inputFile: inputFile,
+                    outputFormat: outputFormat,
+                    verbosity: verbosity
                 )
                 return .search(options: options)
             } else {

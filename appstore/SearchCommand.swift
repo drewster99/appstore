@@ -43,26 +43,33 @@ class SearchCommand {
                 return
             }
 
-            switch options.outputMode {
-            case .json:
-                // Show JSON output with metadata wrapper
-                let output = createJSONOutput(result: result, options: options, durationMs: durationMs)
-                print(output)
-            case .oneline:
-                print("Found \(result.apps.count) result(s):")
-                printOneline(apps: result.apps)
-            case .summary:
-                print("Found \(result.apps.count) result(s):")
-                printSummary(apps: result.apps)
-            case .expanded:
-                print("Found \(result.apps.count) result(s):")
-                printExpanded(apps: result.apps)
-            case .verbose:
-                print("Found \(result.apps.count) result(s):")
-                printVerbose(apps: result.apps)
-            case .complete:
-                print("Found \(result.apps.count) result(s):")
-                printComplete(apps: result.apps, rawData: result.rawData)
+            // Check if we should use special format (markdown, html, etc)
+            if let format = options.outputFormat, format == .markdown {
+                let verbosity = options.verbosity ?? .summary
+                let markdownOutput = MarkdownFormatter.formatSearchResults(result.apps, verbosity: verbosity)
+                print(markdownOutput)
+            } else {
+                switch options.outputMode {
+                case .json:
+                    // Show JSON output with metadata wrapper
+                    let output = createJSONOutput(result: result, options: options, durationMs: durationMs)
+                    print(output)
+                case .oneline:
+                    print("Found \(result.apps.count) result(s):")
+                    printOneline(apps: result.apps)
+                case .summary:
+                    print("Found \(result.apps.count) result(s):")
+                    printSummary(apps: result.apps)
+                case .expanded:
+                    print("Found \(result.apps.count) result(s):")
+                    printExpanded(apps: result.apps)
+                case .verbose:
+                    print("Found \(result.apps.count) result(s):")
+                    printVerbose(apps: result.apps)
+                case .complete:
+                    print("Found \(result.apps.count) result(s):")
+                    printComplete(apps: result.apps, rawData: result.rawData)
+                }
             }
 
         } catch {
