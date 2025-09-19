@@ -27,7 +27,7 @@ struct AppStoreCLI {
 
         case .list(let options):
             let listCommand = ListCommand()
-            listCommand.execute(options: options)
+            await listCommand.execute(options: options)
 
         case .searchHelp:
             HelpCommand.showSearchHelp()

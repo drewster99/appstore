@@ -28,12 +28,14 @@ struct ListOptions {
 }
 
 class ListCommand {
-    func execute(options: ListOptions) {
+    private let session = URLSession.shared
+
+    func execute(options: ListOptions) async {
         switch options.listType {
         case .storefronts:
-            listStorefronts(outputMode: options.outputMode)
+            await listStorefronts(outputMode: options.outputMode)
         case .genres:
-            listGenres(outputMode: options.outputMode)
+            await listGenres(outputMode: options.outputMode)
         case .attributes:
             listAttributes(outputMode: options.outputMode)
         case .charttypes:
@@ -41,7 +43,9 @@ class ListCommand {
         }
     }
 
-    private func listStorefronts(outputMode: OutputMode) {
+    private func listStorefronts(outputMode: OutputMode) async {
+        // Note: Apple doesn't provide an API to list all storefronts,
+        // so we maintain a hardcoded list of known storefronts
         let storefronts = [
             ("us", "United States"),
             ("gb", "United Kingdom"),
@@ -113,8 +117,8 @@ class ListCommand {
             return
         }
 
-        print("Available App Store Storefronts:")
-        print(String(repeating: "-", count: 40))
+        print("Available App Store Storefronts (static):")
+        print(String(repeating: "-", count: 43))
 
         for (code, name) in storefronts {
             print("  \(code) - \(name)")
@@ -125,7 +129,14 @@ class ListCommand {
         print("Example: appstore search twitter --storefront gb")
     }
 
-    private func listGenres(outputMode: OutputMode) {
+    private func listGenres(outputMode: OutputMode) async {
+        // Try to fetch from API first
+        if let apiGenres = await fetchGenresFromAPI() {
+            displayGenres(apiGenres, outputMode: outputMode, source: "API")
+            return
+        }
+
+        // Fall back to hardcoded list if API fails
         let genres = [
             (6000, "Business"),
             (6001, "Weather"),
@@ -169,17 +180,7 @@ class ListCommand {
             return
         }
 
-        print("Available App Store Genre IDs:")
-        print(String(repeating: "-", count: 40))
-
-        for (id, name) in genres {
-            print("  \(id) - \(name)")
-        }
-
-        print()
-        print("Use with: --genre <id>")
-        print("Example: appstore search game --genre 6014")
-        print("Example: appstore top free --genre 6014")
+        displayGenres(genres, outputMode: outputMode, source: "cached")
     }
 
     private func listAttributes(outputMode: OutputMode) {
@@ -293,5 +294,72 @@ class ListCommand {
         print("  appstore top              # defaults to top free")
         print("  appstore top paid         # top paid apps")
         print("  appstore top grossing --limit 10 --storefront gb")
+    }
+
+    // MARK: - API Fetch Methods
+
+    private func fetchGenresFromAPI() async -> [(Int, String)]? {
+        // Apple's genre API endpoint
+        guard let url = URL(string: "https://itunes.apple.com/WebObjects/MZStoreServices.woa/ws/genres?id=36") else {
+            return nil
+        }
+
+        do {
+            let (data, _) = try await session.data(from: url)
+
+            // Parse the JSON response
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let appStoreGenres = json["36"] as? [String: Any],
+                  let subgenres = appStoreGenres["subgenres"] as? [String: Any] else {
+                return nil
+            }
+
+            // Convert to array format
+            var genres: [(Int, String)] = []
+            for (idString, genreData) in subgenres {
+                if let id = Int(idString),
+                   let genreDict = genreData as? [String: Any],
+                   let name = genreDict["name"] as? String {
+                    genres.append((id, name))
+                }
+            }
+
+            // Sort by ID for consistency
+            genres.sort { $0.0 < $1.0 }
+            return genres
+
+        } catch {
+            // Silent fail - will use hardcoded list
+            return nil
+        }
+    }
+
+    // MARK: - Display Helper Methods
+
+    private func displayGenres(_ genres: [(Int, String)], outputMode: OutputMode, source: String) {
+        if outputMode == .json {
+            var jsonData: [String: Any] = ["_source": source]
+            for (id, name) in genres {
+                jsonData[String(id)] = name
+            }
+
+            if let data = try? JSONSerialization.data(withJSONObject: jsonData, options: [.prettyPrinted, .sortedKeys]),
+               let jsonString = String(data: data, encoding: .utf8) {
+                print(jsonString)
+            }
+            return
+        }
+
+        print("Available App Store Genre IDs \(source == "API" ? "(live)" : "(cached)"):")
+        print(String(repeating: "-", count: 40))
+
+        for (id, name) in genres {
+            print("  \(id) - \(name)")
+        }
+
+        print()
+        print("Use with: --genre <id>")
+        print("Example: appstore search game --genre 6014")
+        print("Example: appstore top free --genre 6014")
     }
 }
