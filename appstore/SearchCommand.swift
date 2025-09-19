@@ -13,7 +13,7 @@ class SearchCommand {
             let result = try await api.searchWithRawData(
                 query: options.query,
                 limit: options.limit,
-                country: options.country,
+                storefront: options.storefront,
                 attribute: options.attribute,
                 genre: options.genre,
                 showRequest: options.showRequest

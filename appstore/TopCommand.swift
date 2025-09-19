@@ -31,7 +31,7 @@ enum TopChartType: String, CaseIterable {
 struct TopOptions {
     let chartType: TopChartType
     let limit: Int
-    let country: String
+    let storefront: String  // Was 'country', using storefront for consistency
     let genre: Int?
     let outputMode: OutputMode
 }
@@ -41,11 +41,11 @@ class TopCommand {
 
     func execute(options: TopOptions) async {
         if options.outputMode != .json {
-            print("Fetching \(options.chartType.displayName) apps from \(options.country.uppercased()) App Store...")
+            print("Fetching \(options.chartType.displayName) apps from \(options.storefront.uppercased()) App Store...")
             print()
         }
 
-        let urlString = "https://itunes.apple.com/\(options.country)/rss/\(options.chartType.rawValue)/limit=\(options.limit)"
+        let urlString = "https://itunes.apple.com/\(options.storefront)/rss/\(options.chartType.rawValue)/limit=\(options.limit)"
             + (options.genre.map { "/genre=\($0)" } ?? "")
             + "/json"
 

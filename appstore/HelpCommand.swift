@@ -45,7 +45,8 @@ class HelpCommand {
             --show-request         Display the API request details
             --limit <n>            Number of results (1-200, default: 20, 0 for unlimited)
             --unlimited            Don't limit results (same as --limit 0)
-            --country <code>       Country code (e.g., us, jp, gb)
+            --storefront <code>    Storefront code (e.g., us, jp, gb)
+            --country <code>       Alias for --storefront (for compatibility)
             --attribute <attr>     Search specific field:
                                      softwareDeveloper - Developer name only
                                      titleTerm - App title only
@@ -79,10 +80,10 @@ class HelpCommand {
             appstore search twitter
             appstore search "video editor"
             appstore search --limit 5 minecraft
-            appstore search --country jp nintendo
+            appstore search --storefront jp nintendo
             appstore search --attribute softwareDeveloper "Facebook Inc"
             appstore search --genre 6014 puzzle                # Search in Games category
-            appstore search --country fr --genre 6014 puzzle   # French Games
+            appstore search --storefront fr --genre 6014 puzzle   # French Games
             appstore search --output-mode oneline spotify
             appstore search --output-mode verbose "adobe photoshop"
             appstore search --output-mode json spotify
@@ -114,7 +115,8 @@ class HelpCommand {
             --url <url>            Look up app by App Store URL
 
         OPTIONS:
-            --country <code>       Country code (e.g., us, jp, gb)
+            --storefront <code>    Storefront code (e.g., us, jp, gb)
+            --country <code>       Alias for --storefront (for compatibility)
             --entity <type>        Get related content (e.g., software)
             --show-request         Display the API request details
             --output-mode <mode>   Output format:
@@ -133,7 +135,7 @@ class HelpCommand {
             appstore lookup --ids 284910350,324684580
             appstore lookup --bundle-id com.spotify.client
             appstore lookup --url "https://apps.apple.com/us/app/yelp/id284910350"
-            appstore lookup 284910350 --country jp
+            appstore lookup 284910350 --storefront jp
             appstore lookup com.facebook.Facebook --output-mode json
         """)
     }
@@ -159,7 +161,8 @@ class HelpCommand {
         OPTIONS:
             --type <type>          Chart type (free, paid, grossing, newfree, newpaid)
             --limit <n>            Number of results (1-200, default: 25)
-            --country <code>       Country code (e.g., us, jp, gb, default: us)
+            --storefront <code>    Storefront code (e.g., us, jp, gb, default: us)
+            --country <code>       Alias for --storefront (for compatibility)
             --genre <id>           Genre ID for filtering (e.g., 6014 for Games)
             --output-mode <mode>   Output format:
                                      oneline  - Rank, bundle ID, price, name
@@ -187,9 +190,9 @@ class HelpCommand {
             appstore top                           # Top free apps (US)
             appstore top paid                      # Top paid apps
             appstore top grossing --limit 10       # Top 10 grossing apps
-            appstore top free --country jp         # Top free apps in Japan
+            appstore top free --storefront jp      # Top free apps in Japan
             appstore top paid --genre 6014         # Top paid games
-            appstore top --country gb --limit 50   # Top 50 free apps in UK
+            appstore top --storefront gb --limit 50   # Top 50 free apps in UK
             appstore top newfree --output-mode json  # New free apps as JSON
         """)
     }

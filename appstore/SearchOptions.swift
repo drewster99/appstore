@@ -55,7 +55,7 @@ struct SearchOptions {
     let showRequest: Bool
     let limit: Int  // 0 means no limit
     let outputMode: OutputMode
-    let country: String?
+    let storefront: String?  // Was 'country', using storefront for consistency
     let attribute: String?
     let genre: Int?
 
@@ -75,6 +75,6 @@ struct LookupOptions {
     let lookupType: LookupType
     let showRequest: Bool
     let outputMode: OutputMode
-    let country: String?
+    let storefront: String?  // Was 'country', using storefront for consistency
     let entity: String? // For related content lookups
 }

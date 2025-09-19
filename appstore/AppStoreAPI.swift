@@ -79,12 +79,12 @@ class AppStoreAPI {
         self.session = session
     }
 
-    func search(query: String, limit: Int = 20, country: String? = nil, attribute: String? = nil, genre: Int? = nil) async throws -> [App] {
-        let result = try await searchWithRawData(query: query, limit: limit, country: country, attribute: attribute, genre: genre)
+    func search(query: String, limit: Int = 20, storefront: String? = nil, attribute: String? = nil, genre: Int? = nil) async throws -> [App] {
+        let result = try await searchWithRawData(query: query, limit: limit, storefront: storefront, attribute: attribute, genre: genre)
         return result.apps
     }
 
-    func searchWithRawData(query: String, limit: Int = 20, country: String? = nil, attribute: String? = nil, genre: Int? = nil, showRequest: Bool = false) async throws -> (apps: [App], rawData: Data) {
+    func searchWithRawData(query: String, limit: Int = 20, storefront: String? = nil, attribute: String? = nil, genre: Int? = nil, showRequest: Bool = false) async throws -> (apps: [App], rawData: Data) {
         guard var urlComponents = URLComponents(string: searchURL) else {
             throw AppStoreAPIError.invalidURL
         }
@@ -99,8 +99,8 @@ class AppStoreAPI {
             queryItems.append(URLQueryItem(name: "limit", value: String(limit)))
         }
 
-        if let country = country {
-            queryItems.append(URLQueryItem(name: "country", value: country))
+        if let storefront = storefront {
+            queryItems.append(URLQueryItem(name: "country", value: storefront))  // API uses 'country' parameter
         }
 
         if let attribute = attribute {
@@ -146,7 +146,7 @@ class AppStoreAPI {
         }
     }
 
-    func lookupWithRawData(lookupType: LookupType, country: String? = nil, entity: String? = nil, showRequest: Bool = false) async throws -> (apps: [App], rawData: Data) {
+    func lookupWithRawData(lookupType: LookupType, storefront: String? = nil, entity: String? = nil, showRequest: Bool = false) async throws -> (apps: [App], rawData: Data) {
         guard var urlComponents = URLComponents(string: lookupURL) else {
             throw AppStoreAPIError.invalidURL
         }
@@ -171,8 +171,8 @@ class AppStoreAPI {
         }
 
         // Add optional parameters
-        if let country = country {
-            queryItems.append(URLQueryItem(name: "country", value: country))
+        if let storefront = storefront {
+            queryItems.append(URLQueryItem(name: "country", value: storefront))  // API uses 'country' parameter
         }
 
         if let entity = entity {

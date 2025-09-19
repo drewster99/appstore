@@ -13,7 +13,7 @@ class LookupCommand {
         do {
             let result = try await api.lookupWithRawData(
                 lookupType: options.lookupType,
-                country: options.country,
+                storefront: options.storefront,
                 entity: options.entity,
                 showRequest: options.showRequest
             )
