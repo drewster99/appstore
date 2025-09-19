@@ -124,10 +124,12 @@ class TopCommand {
             let name = (entry["im:name"] as? [String: Any])?["label"] as? String ?? "Unknown"
             let price = (entry["im:price"] as? [String: Any])?["label"] as? String ?? "Unknown"
 
-            // Try to get bundle ID from id attributes
-            let bundleId = ((entry["id"] as? [String: Any])?["attributes"] as? [String: Any])?["im:bundleId"] as? String ?? "unknown"
+            // Get IDs
+            let idAttributes = (entry["id"] as? [String: Any])?["attributes"] as? [String: Any]
+            let appId = idAttributes?["im:id"] as? String ?? "unknown"
+            let bundleId = idAttributes?["im:bundleId"] as? String ?? "unknown"
 
-            print("\(rank). \(bundleId) \(price) \(name)")
+            print("\(rank). \(appId) \(bundleId) \(price) \(name)")
         }
     }
 
@@ -144,6 +146,7 @@ class TopCommand {
             let bundleId = idAttributes?["im:bundleId"] as? String
 
             print("\(index + 1). \(name)")
+            print("   App ID: \(appId)")
             print("   Developer: \(artist)")
             print("   Price: \(price)")
             print("   Category: \(category)")
@@ -151,7 +154,6 @@ class TopCommand {
             if let bundleId = bundleId {
                 print("   Bundle ID: \(bundleId)")
             }
-            print("   App ID: \(appId)")
 
             if let summary = (entry["summary"] as? [String: Any])?["label"] as? String {
                 let maxLength = 150

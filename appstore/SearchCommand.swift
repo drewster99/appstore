@@ -61,7 +61,7 @@ class SearchCommand {
             let ratingCount = app.userRatingCount.map { String($0) } ?? "0"
             let price = app.formattedPrice ?? "Free"
 
-            print("\(app.bundleId) \(app.version) \(price) \(rating) \(ratingCount) \(app.trackName)")
+            print("\(app.trackId) \(app.bundleId) \(app.version) \(price) \(rating) \(ratingCount) \(app.trackName)")
         }
     }
 
@@ -70,6 +70,7 @@ class SearchCommand {
 
         for (index, app) in apps.enumerated() {
             print("\(index + 1). \(app.trackName)")
+            print("   App ID: \(app.trackId)")
             print("   Developer: \(app.artistName)")
             print("   Price: \(app.formattedPrice ?? "Free")")
 
@@ -102,6 +103,7 @@ class SearchCommand {
 
         for (index, app) in apps.enumerated() {
             print("\(index + 1). \(app.trackName)")
+            print("   App ID: \(app.trackId)")
             print("   Developer: \(app.artistName)")
             print("   Price: \(app.formattedPrice ?? "Free")")
 
@@ -159,6 +161,7 @@ class SearchCommand {
 
         for (index, app) in apps.enumerated() {
             print("\(index + 1). \(app.trackName)")
+            print("   App ID: \(app.trackId)")
             print("   Developer: \(app.artistName)")
 
             let priceInfo = if let currency = app.currency {
