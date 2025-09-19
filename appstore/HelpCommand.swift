@@ -57,13 +57,15 @@ class HelpCommand {
                                      descriptionTerm - Description only
                                      artistTerm - Artist/developer name
             --genre <id>           Filter by genre ID (e.g., 6014 for Games)
-            --output-mode <mode>   Output format:
-                                     oneline  - Single line per app
+            --output-format <fmt>  Output format (text, json, markdown, html)
+            --verbosity <level>    Detail level:
+                                     minimal  - Single line per app
                                      summary  - Key details (default)
-                                     expanded - Additional info (size, ratings, advisories)
-                                     verbose  - All standard fields plus URLs
-                                     complete - All JSON fields displayed
-                                     json     - Raw JSON response (pretty-printed)
+                                     expanded - Additional info
+                                     verbose  - All standard fields
+                                     complete - All available fields
+            --output-mode <mode>   Legacy output mode (for compatibility)
+            --full-description     Show complete app descriptions
 
         SEARCH TIPS:
             • Use quotes for multi-word searches: appstore search "photo editor"
