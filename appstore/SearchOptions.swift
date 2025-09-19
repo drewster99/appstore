@@ -169,10 +169,12 @@ enum LookupType {
 struct LookupOptions {
     let lookupType: LookupType
     let showRequest: Bool
-    let outputMode: OutputMode
+    let outputMode: OutputMode  // Legacy support
     let storefront: String?  // Was 'country', using storefront for consistency
     let entity: String? // For related content lookups
     let outputFile: String?
     let inputFile: String?
+    let outputFormat: OutputFormat?
+    let verbosity: Verbosity?
     let fullDescription: Bool
 }

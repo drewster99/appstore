@@ -403,6 +403,8 @@ class CommandParser {
                 entity: entity,
                 outputFile: outputFile,
                 inputFile: inputFile,
+                outputFormat: nil,
+                verbosity: nil,
                 fullDescription: fullDescription
             )
             return .lookup(options: options)
@@ -410,6 +412,8 @@ class CommandParser {
 
         var showRequest = EnvironmentConfig.showRequest
         var outputMode = OutputMode.default
+        var outputFormat: OutputFormat?
+        var verbosity: Verbosity?
         var storefront = EnvironmentConfig.defaultStorefront != "us" ? EnvironmentConfig.defaultStorefront : nil
         var entity: String?
         var outputFile: String?
@@ -509,6 +513,46 @@ class CommandParser {
                     return .lookupHelp
                 }
 
+            case "--output-format", "--format":
+                args.remove(at: i)
+                if i < args.count {
+                    let formatString = args[i].lowercased()
+                    if let format = OutputFormat.from(cliName: formatString) {
+                        outputFormat = format
+                        args.remove(at: i)
+                    } else {
+                        print("Error: Invalid output format '\(args[i])'")
+                        print("Valid formats: text, json, markdown, html, html-open")
+                        return .lookupHelp
+                    }
+                } else {
+                    print("Available output formats:")
+                    for format in OutputFormat.allCases {
+                        print("  \(format.cliName) - \(format.description)")
+                    }
+                    return .lookupHelp
+                }
+
+            case "--verbosity", "-v":
+                args.remove(at: i)
+                if i < args.count {
+                    let verbosityString = args[i].lowercased()
+                    if let v = Verbosity(rawValue: verbosityString) {
+                        verbosity = v
+                        args.remove(at: i)
+                    } else {
+                        print("Error: Invalid verbosity level '\(args[i])'")
+                        print("Valid levels: minimal, summary, expanded, verbose, complete")
+                        return .lookupHelp
+                    }
+                } else {
+                    print("Available verbosity levels:")
+                    for v in Verbosity.allCases {
+                        print("  \(v.rawValue) - \(v.description)")
+                    }
+                    return .lookupHelp
+                }
+
             case "--output-file", "-o":
                 args.remove(at: i)
                 if i < args.count {
@@ -555,6 +599,26 @@ class CommandParser {
             return .lookupHelp
         }
 
+        // Handle format/verbosity combination
+        if outputFormat != nil || verbosity != nil {
+            // If format is specified but not verbosity, use default verbosity
+            let finalVerbosity = verbosity ?? .summary
+            let finalFormat = outputFormat ?? .text
+
+            // Create compatibility outputMode for legacy code
+            if finalFormat == .json {
+                outputMode = .json
+            } else if finalFormat == .text {
+                switch finalVerbosity {
+                case .minimal: outputMode = .oneline
+                case .summary: outputMode = .summary
+                case .expanded: outputMode = .expanded
+                case .verbose: outputMode = .verbose
+                case .complete: outputMode = .complete
+                }
+            }
+        }
+
         let options = LookupOptions(
             lookupType: lookupType,
             showRequest: showRequest,
@@ -563,6 +627,8 @@ class CommandParser {
             entity: entity,
             outputFile: outputFile,
             inputFile: inputFile,
+            outputFormat: outputFormat,
+            verbosity: verbosity,
             fullDescription: fullDescription
         )
         return .lookup(options: options)
@@ -587,6 +653,11 @@ class CommandParser {
         var storefront = EnvironmentConfig.defaultStorefront
         var genre = EnvironmentConfig.defaultGenre
         var outputMode = OutputMode.default
+        var outputFormat: OutputFormat?
+        var verbosity: Verbosity?
+        var outputFile: String?
+        var inputFile: String?
+        var fullDescription = false
         var args = Array(arguments.dropFirst(2))
 
         // Check if first argument is a chart type
@@ -702,6 +773,70 @@ class CommandParser {
                     return .topHelp
                 }
 
+            case "--output-format", "--format":
+                args.remove(at: i)
+                if i < args.count {
+                    let formatString = args[i].lowercased()
+                    if let format = OutputFormat.from(cliName: formatString) {
+                        outputFormat = format
+                        args.remove(at: i)
+                    } else {
+                        print("Error: Invalid output format '\(args[i])'")
+                        print("Valid formats: text, json, markdown, html, html-open")
+                        return .topHelp
+                    }
+                } else {
+                    print("Available output formats:")
+                    for format in OutputFormat.allCases {
+                        print("  \(format.cliName) - \(format.description)")
+                    }
+                    return .topHelp
+                }
+
+            case "--verbosity", "-v":
+                args.remove(at: i)
+                if i < args.count {
+                    let verbosityString = args[i].lowercased()
+                    if let v = Verbosity(rawValue: verbosityString) {
+                        verbosity = v
+                        args.remove(at: i)
+                    } else {
+                        print("Error: Invalid verbosity level '\(args[i])'")
+                        print("Valid levels: minimal, summary, expanded, verbose, complete")
+                        return .topHelp
+                    }
+                } else {
+                    print("Available verbosity levels:")
+                    for v in Verbosity.allCases {
+                        print("  \(v.rawValue) - \(v.description)")
+                    }
+                    return .topHelp
+                }
+
+            case "--output-file":
+                args.remove(at: i)
+                if i < args.count {
+                    outputFile = args[i]
+                    args.remove(at: i)
+                } else {
+                    print("Error: --output-file requires a file path")
+                    return .topHelp
+                }
+
+            case "--input-file":
+                args.remove(at: i)
+                if i < args.count {
+                    inputFile = args[i]
+                    args.remove(at: i)
+                } else {
+                    print("Error: --input-file requires a file path")
+                    return .topHelp
+                }
+
+            case "--full-description":
+                fullDescription = true
+                args.remove(at: i)
+
             default:
                 if args[i].hasPrefix("--") || (args[i].hasPrefix("-") && args[i] != "-") {
                     print("Error: Unknown option '\(args[i])'")
@@ -720,12 +855,37 @@ class CommandParser {
             return .topHelp
         }
 
+        // Handle format/verbosity combination
+        if outputFormat != nil || verbosity != nil {
+            // If format is specified but not verbosity, use default verbosity
+            let finalVerbosity = verbosity ?? .summary
+            let finalFormat = outputFormat ?? .text
+
+            // Create compatibility outputMode for legacy code
+            if finalFormat == .json {
+                outputMode = .json
+            } else if finalFormat == .text {
+                switch finalVerbosity {
+                case .minimal: outputMode = .oneline
+                case .summary: outputMode = .summary
+                case .expanded: outputMode = .expanded
+                case .verbose: outputMode = .verbose
+                case .complete: outputMode = .complete
+                }
+            }
+        }
+
         let options = TopOptions(
             chartType: finalChartType,
             limit: limit,
             storefront: storefront,
             genre: genre,
-            outputMode: outputMode
+            outputMode: outputMode,
+            outputFormat: outputFormat,
+            verbosity: verbosity,
+            outputFile: outputFile,
+            inputFile: inputFile,
+            fullDescription: fullDescription
         )
         return .top(options: options)
     }
@@ -742,6 +902,8 @@ class CommandParser {
 
         var listType: ListType?
         var outputMode = OutputMode.default
+        var outputFormat: OutputFormat?
+        var verbosity: Verbosity?
         var args = Array(arguments.dropFirst(2))
 
         // Check if first argument is a list type
@@ -788,6 +950,45 @@ class CommandParser {
                     return .listHelp
                 }
 
+            case "--output-format", "--format":
+                args.remove(at: i)
+                if i < args.count {
+                    let formatString = args[i].lowercased()
+                    if let format = OutputFormat.from(cliName: formatString) {
+                        outputFormat = format
+                        args.remove(at: i)
+                    } else {
+                        print("Error: Invalid output format '\(args[i])'")
+                        print("Valid formats: text, json, markdown")
+                        return .listHelp
+                    }
+                } else {
+                    print("Available output formats:")
+                    for format in [OutputFormat.text, OutputFormat.json, OutputFormat.markdown] {
+                        print("  \(format.rawValue) - \(format.description)")
+                    }
+                    return .listHelp
+                }
+
+            case "--verbosity", "-v":
+                args.remove(at: i)
+                if i < args.count {
+                    let verbosityString = args[i].lowercased()
+                    if let v = Verbosity(rawValue: verbosityString) {
+                        verbosity = v
+                        args.remove(at: i)
+                    } else {
+                        print("Error: Invalid verbosity level '\(args[i])'")
+                        print("Valid levels: minimal, summary")
+                        return .listHelp
+                    }
+                } else {
+                    print("Available verbosity levels for list:")
+                    print("  minimal - Compact list")
+                    print("  summary - Detailed list with descriptions")
+                    return .listHelp
+                }
+
             default:
                 if args[i].hasPrefix("--") || (args[i].hasPrefix("-") && args[i] != "-") {
                     print("Error: Unknown option '\(args[i])'")
@@ -802,9 +1003,29 @@ class CommandParser {
             return .listHelp
         }
 
+        // Handle format/verbosity combination
+        if outputFormat != nil || verbosity != nil {
+            // If format is specified but not verbosity, use default verbosity
+            let finalVerbosity = verbosity ?? .summary
+            let finalFormat = outputFormat ?? .text
+
+            // Create compatibility outputMode for legacy code
+            if finalFormat == .json {
+                outputMode = .json
+            } else if finalFormat == .text {
+                switch finalVerbosity {
+                case .minimal: outputMode = .oneline
+                case .summary: outputMode = .summary
+                default: outputMode = .summary
+                }
+            }
+        }
+
         let options = ListOptions(
             listType: listType,
-            outputMode: outputMode
+            outputMode: outputMode,
+            outputFormat: outputFormat,
+            verbosity: verbosity
         )
         return .list(options: options)
     }

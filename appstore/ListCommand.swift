@@ -22,7 +22,9 @@ enum ListType: String, CaseIterable {
 
 struct ListOptions {
     let listType: ListType
-    let outputMode: OutputMode
+    let outputMode: OutputMode  // Legacy support
+    let outputFormat: OutputFormat?
+    let verbosity: Verbosity?
 }
 
 class ListCommand {

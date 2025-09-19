@@ -33,7 +33,12 @@ struct TopOptions {
     let limit: Int
     let storefront: String  // Was 'country', using storefront for consistency
     let genre: Int?
-    let outputMode: OutputMode
+    let outputMode: OutputMode  // Legacy support
+    let outputFormat: OutputFormat?
+    let verbosity: Verbosity?
+    let outputFile: String?
+    let inputFile: String?
+    let fullDescription: Bool
 }
 
 class TopCommand {
