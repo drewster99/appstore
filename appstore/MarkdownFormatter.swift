@@ -40,7 +40,21 @@ class MarkdownFormatter {
 
             let name = (entry["im:name"] as? [String: Any])?["label"] as? String ?? "Unknown"
             let artist = (entry["im:artist"] as? [String: Any])?["label"] as? String ?? "Unknown Developer"
-            let price = (entry["im:price"] as? [String: Any])?["label"] as? String ?? "Unknown"
+
+            // Get price from attributes for actual amount
+            let priceInfo = entry["im:price"] as? [String: Any]
+            let priceAttributes = priceInfo?["attributes"] as? [String: Any]
+            let amount = priceAttributes?["amount"] as? String ?? "0.00"
+            let currency = priceAttributes?["currency"] as? String ?? "USD"
+
+            // Format price: Free for 0.00, otherwise show currency symbol
+            let price: String
+            if amount == "0.00" || amount == "0.00000" {
+                price = "Free"
+            } else {
+                price = currency == "USD" ? "$\(amount)" : "\(amount) \(currency)"
+            }
+
             let category = ((entry["category"] as? [String: Any])?["attributes"] as? [String: Any])?["label"] as? String ?? "Unknown"
 
             // Get IDs
