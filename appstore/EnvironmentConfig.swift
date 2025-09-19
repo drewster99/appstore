@@ -37,9 +37,9 @@ struct EnvironmentConfig {
 
     static let defaultAttribute = ProcessInfo.processInfo.environment["APPSTORE_DEFAULT_ATTRIBUTE"]
 
-    static var defaultChartType: TopChartType {
+    static var defaultChartType: TopChartType? {
         guard let value = ProcessInfo.processInfo.environment["APPSTORE_DEFAULT_CHART_TYPE"] else {
-            return .free
+            return nil
         }
 
         // Map common names to chart types
@@ -55,7 +55,7 @@ struct EnvironmentConfig {
         case "newpaid", "new-paid", "newpaidapplications":
             return .newPaid
         default:
-            return .free
+            return nil
         }
     }
 

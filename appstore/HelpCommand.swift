@@ -149,14 +149,14 @@ class HelpCommand {
         appstore top - View top charts from the App Store
 
         USAGE:
-            appstore top [chart-type] [options]
+            appstore top <chart-type> [options]
 
         DESCRIPTION:
             Displays top charts from the App Store including top free, paid,
             and grossing apps. Data comes from Apple's RSS feeds.
 
-        CHART TYPES:
-            free        Top free apps (default)
+        CHART TYPES (required):
+            free        Top free apps
             paid        Top paid apps
             grossing    Top grossing apps
             newfree     New free apps
@@ -191,12 +191,12 @@ class HelpCommand {
             6013 - Music
 
         EXAMPLES:
-            appstore top                           # Top free apps (US)
+            appstore top free                      # Top free apps (US)
             appstore top paid                      # Top paid apps
             appstore top grossing --limit 10       # Top 10 grossing apps
             appstore top free --storefront jp      # Top free apps in Japan
             appstore top paid --genre 6014         # Top paid games
-            appstore top --storefront gb --limit 50   # Top 50 free apps in UK
+            appstore top free --storefront gb --limit 50   # Top 50 free apps in UK
             appstore top newfree --output-mode json  # New free apps as JSON
         """)
     }

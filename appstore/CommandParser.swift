@@ -569,17 +569,12 @@ class CommandParser {
     }
 
     private func parseTopCommand() -> Command {
-        // If just "appstore top", default to top free
+        // If just "appstore top", show help
         if arguments.count == 2 {
-            // Use default options with environment config
-            let options = TopOptions(
-                chartType: EnvironmentConfig.defaultChartType,
-                limit: EnvironmentConfig.defaultLimit ?? 25,
-                storefront: EnvironmentConfig.defaultStorefront,
-                genre: EnvironmentConfig.defaultGenre,
-                outputMode: OutputMode.default
-            )
-            return .top(options: options)
+            print("Error: Must specify a chart type")
+            print("Valid types: free, paid, grossing, newfree, newpaid")
+            print("Example: appstore top free")
+            return .topHelp
         }
 
         if arguments.count > 2 && (arguments[2] == "--help" || arguments[2] == "-h") {
@@ -587,7 +582,7 @@ class CommandParser {
         }
 
         // Parse chart type (first non-flag argument)
-        var chartType = EnvironmentConfig.defaultChartType
+        var chartType: TopChartType?
         var limit = EnvironmentConfig.defaultLimit ?? 25
         var storefront = EnvironmentConfig.defaultStorefront
         var genre = EnvironmentConfig.defaultGenre
@@ -615,6 +610,11 @@ class CommandParser {
                 return .topHelp
             }
             args.removeFirst()
+        }
+
+        // Check if chart type was set from environment variable
+        if chartType == nil && ProcessInfo.processInfo.environment["APPSTORE_DEFAULT_CHART_TYPE"] != nil {
+            chartType = EnvironmentConfig.defaultChartType
         }
 
         // Process flags
@@ -712,8 +712,16 @@ class CommandParser {
             }
         }
 
+        // Ensure chart type is set
+        guard let finalChartType = chartType else {
+            print("Error: Must specify a chart type")
+            print("Valid types: free, paid, grossing, newfree, newpaid")
+            print("Example: appstore top free")
+            return .topHelp
+        }
+
         let options = TopOptions(
-            chartType: chartType,
+            chartType: finalChartType,
             limit: limit,
             storefront: storefront,
             genre: genre,
