@@ -19,10 +19,22 @@ class MarkdownFormatter {
         }
 
         // App details
-        for (index, app) in apps.enumerated() {
-            output += formatApp(app, index: index + 1, verbosity: verbosity, fullDescription: fullDescription)
-            if index < apps.count - 1 {
-                output += "\n---\n\n"
+        if verbosity == .minimal {
+            // For minimal verbosity, create one continuous table
+            output += "| # | App ID | Bundle ID | Version | Price | Rating | Reviews | Name |\n"
+            output += "|---|--------|-----------|---------|-------|--------|---------|------|\n"
+            for (index, app) in apps.enumerated() {
+                let rating = app.averageUserRating.map { String(format: "%.1f", $0) } ?? "N/A"
+                let ratingCount = app.userRatingCount.map { FormatUtils.formatNumber($0) } ?? "0"
+                output += "| \(index + 1) | `\(app.trackId)` | `\(app.bundleId)` | \(app.version) | \(app.formattedPrice ?? "Free") | ⭐ \(rating) | \(ratingCount) | **\(app.trackName)** |\n"
+            }
+        } else {
+            // For other verbosity levels, use separator
+            for (index, app) in apps.enumerated() {
+                output += formatApp(app, index: index + 1, verbosity: verbosity, fullDescription: fullDescription)
+                if index < apps.count - 1 {
+                    output += "\n---\n\n"
+                }
             }
         }
 
@@ -87,12 +99,8 @@ class MarkdownFormatter {
 
         switch verbosity {
         case .minimal:
-            // One-line format in markdown
-            output += "**\(index).** `\(app.trackId)` | `\(app.bundleId)` | \(app.formattedPrice ?? "Free") | "
-            if let rating = app.averageUserRating {
-                output += "⭐ \(String(format: "%.1f", rating)) "
-            }
-            output += "| **\(app.trackName)**\n"
+            // This case is now handled in formatSearchResults directly
+            break
 
         case .summary:
             output += "## \(index). \(app.trackName)\n\n"
