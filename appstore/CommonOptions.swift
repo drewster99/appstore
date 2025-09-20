@@ -8,6 +8,7 @@ struct CommonOptions {
     let fullDescription: Bool
     let showRequest: Bool
     let storefront: String?
+    let language: String
 
     static var `default`: CommonOptions {
         return CommonOptions(
@@ -17,7 +18,8 @@ struct CommonOptions {
             inputFile: nil,
             fullDescription: false,
             showRequest: false,
-            storefront: nil
+            storefront: nil,
+            language: "en_us"
         )
     }
 
@@ -28,7 +30,8 @@ struct CommonOptions {
         inputFile: String? = nil,
         fullDescription: Bool = false,
         showRequest: Bool = false,
-        storefront: String? = nil
+        storefront: String? = nil,
+        language: String? = nil
     ) {
         self.outputFormat = outputFormat ?? .text
         self.verbosity = verbosity ?? .summary
@@ -36,6 +39,8 @@ struct CommonOptions {
         self.inputFile = inputFile
         self.fullDescription = fullDescription
         self.showRequest = showRequest
-        self.storefront = storefront
+        // Convert storefront to uppercase
+        self.storefront = storefront?.uppercased()
+        self.language = language ?? "en_us"
     }
 }

@@ -17,6 +17,7 @@ class LookupCommand {
                 lookupType: options.lookupType,
                 storefront: options.commonOptions.storefront,
                 entity: options.entity,
+                language: options.commonOptions.language,
                 showRequest: options.commonOptions.showRequest
             )
 

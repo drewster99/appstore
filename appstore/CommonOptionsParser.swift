@@ -21,6 +21,7 @@ class CommonOptionsParser {
         var fullDescription = false
         var showRequest = EnvironmentConfig.showRequest
         var storefront = EnvironmentConfig.defaultStorefront != "us" ? EnvironmentConfig.defaultStorefront : nil
+        var language: String = "en_us"
 
         var remainingArgs = [String]()
         var i = 0
@@ -104,7 +105,20 @@ class CommonOptionsParser {
             case "--country", "--storefront":
                 i += 1
                 if i < args.count {
-                    storefront = args[i]
+                    // Convert to uppercase for consistency
+                    storefront = args[i].uppercased()
+                } else {
+                    return ParseResult(
+                        options: CommonOptions(),
+                        remainingArgs: [],
+                        error: "\(arg) requires a value"
+                    )
+                }
+
+            case "--language", "--lang":
+                i += 1
+                if i < args.count {
+                    language = args[i]
                 } else {
                     return ParseResult(
                         options: CommonOptions(),
@@ -150,7 +164,8 @@ class CommonOptionsParser {
             inputFile: inputFile,
             fullDescription: fullDescription,
             showRequest: showRequest,
-            storefront: storefront
+            storefront: storefront,
+            language: language
         )
 
         return ParseResult(options: options, remainingArgs: remainingArgs)

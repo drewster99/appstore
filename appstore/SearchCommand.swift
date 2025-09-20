@@ -26,6 +26,7 @@ class SearchCommand {
                 storefront: options.commonOptions.storefront,
                 attribute: options.attribute,
                 genre: options.genre,
+                language: options.commonOptions.language,
                 showRequest: options.commonOptions.showRequest
             )
 

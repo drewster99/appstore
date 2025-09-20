@@ -49,8 +49,9 @@ class HelpCommand {
             --show-request         Display the API request details
             --limit <n>            Number of results (1-200, default: 20, 0 for unlimited)
             --unlimited            Don't limit results (same as --limit 0)
-            --storefront <code>    Storefront code (e.g., us, jp, gb)
+            --storefront <code>    Storefront code (e.g., US, JP, GB)
             --country <code>       Alias for --storefront (for compatibility)
+            --language <code>      Language for results (e.g., en_us, ja_jp, default: en_us)
             --attribute <attr>     Search specific field:
                                      softwareDeveloper - Developer name only
                                      titleTerm - App title only
@@ -86,10 +87,10 @@ class HelpCommand {
             appstore search twitter
             appstore search "video editor"
             appstore search --limit 5 minecraft
-            appstore search --storefront jp nintendo
+            appstore search --storefront JP nintendo
             appstore search --attribute softwareDeveloper "Facebook Inc"
             appstore search --genre 6014 puzzle                # Search in Games category
-            appstore search --storefront fr --genre 6014 puzzle   # French Games
+            appstore search --storefront FR --genre 6014 puzzle   # French Games
             appstore search --output-mode oneline spotify
             appstore search --output-mode verbose "adobe photoshop"
             appstore search --output-mode json spotify
@@ -121,8 +122,9 @@ class HelpCommand {
             --url <url>            Look up app by App Store URL
 
         OPTIONS:
-            --storefront <code>    Storefront code (e.g., us, jp, gb)
+            --storefront <code>    Storefront code (e.g., US, JP, GB)
             --country <code>       Alias for --storefront (for compatibility)
+            --language <code>      Language for results (e.g., en_us, ja_jp, default: en_us)
             --entity <type>        Get related content (e.g., software)
             --show-request         Display the API request details
             --output-mode <mode>   Output format:
@@ -141,7 +143,7 @@ class HelpCommand {
             appstore lookup --ids 284910350,324684580
             appstore lookup --bundle-id com.spotify.client
             appstore lookup --url "https://apps.apple.com/us/app/yelp/id284910350"
-            appstore lookup 284910350 --storefront jp
+            appstore lookup 284910350 --storefront JP
             appstore lookup com.facebook.Facebook --output-mode json
         """)
     }
@@ -167,8 +169,9 @@ class HelpCommand {
         OPTIONS:
             --type <type>          Chart type (free, paid, grossing, newfree, newpaid)
             --limit <n>            Number of results (1-200, default: 25)
-            --storefront <code>    Storefront code (e.g., us, jp, gb, default: us)
+            --storefront <code>    Storefront code (e.g., US, JP, GB, default: US)
             --country <code>       Alias for --storefront (for compatibility)
+            --language <code>      Language for results (e.g., en_us, ja_jp, default: en_us)
             --genre <id>           Genre ID for filtering (e.g., 6014 for Games)
             --output-mode <mode>   Output format:
                                      oneline  - Rank, bundle ID, price, name
@@ -196,9 +199,9 @@ class HelpCommand {
             appstore top free                      # Top free apps (US)
             appstore top paid                      # Top paid apps
             appstore top grossing --limit 10       # Top 10 grossing apps
-            appstore top free --storefront jp      # Top free apps in Japan
+            appstore top free --storefront JP      # Top free apps in Japan
             appstore top paid --genre 6014         # Top paid games
-            appstore top free --storefront gb --limit 50   # Top 50 free apps in UK
+            appstore top free --storefront GB --limit 50   # Top 50 free apps in UK
             appstore top newfree --output-mode json  # New free apps as JSON
         """)
     }
