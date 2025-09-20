@@ -43,9 +43,10 @@ class SearchCommand {
             let parameters: [String: Any] = [
                 "query": options.query,
                 "limit": options.limit,
-                "storefront": options.commonOptions.storefront ?? "us",
+                "storefront": options.commonOptions.storefront ?? "US",
                 "attribute": options.attribute ?? "",
-                "genre": options.genre ?? 0
+                "genre": options.genre ?? 0,
+                "language": options.commonOptions.language
             ]
 
             outputManager.outputSearchResults(result.apps, command: "search", parameters: parameters, durationMs: durationMs)
@@ -90,7 +91,8 @@ class SearchCommand {
                 print("Found \(searchResult.results.count) result(s) from file:")
             }
 
-            outputManager.outputSearchResults(searchResult.results, command: "search", parameters: [:], durationMs: nil)
+            // For file input, we don't have timing information
+            outputManager.outputSearchResults(searchResult.results, command: "search", parameters: [:], durationMs: 0)
 
         } catch {
             print("Error reading input file: \(error)")

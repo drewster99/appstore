@@ -32,6 +32,7 @@ enum Verbosity: String, CaseIterable {
 enum OutputFormat: String, CaseIterable {
     case text       // Console output (default)
     case json       // JSON with metadata wrapper
+    case rawJson    // Raw JSON without metadata wrapper
     case html       // Rich HTML with icons and screenshots
     case htmlOpen   // HTML + auto-open in browser
     case markdown   // Markdown format
@@ -46,6 +47,8 @@ enum OutputFormat: String, CaseIterable {
             return "Plain text output for console (default)"
         case .json:
             return "JSON with metadata wrapper"
+        case .rawJson:
+            return "Raw JSON without metadata wrapper"
         case .html:
             return "HTML with icons, screenshots, and collapsible sections"
         case .htmlOpen:
@@ -60,6 +63,8 @@ enum OutputFormat: String, CaseIterable {
         switch self {
         case .htmlOpen:
             return "html-open"
+        case .rawJson:
+            return "raw-json"
         default:
             return self.rawValue
         }
@@ -69,6 +74,8 @@ enum OutputFormat: String, CaseIterable {
         switch cliName.lowercased() {
         case "html-open":
             return .htmlOpen
+        case "raw-json", "rawjson":
+            return .rawJson
         default:
             return OutputFormat(rawValue: cliName.lowercased())
         }
@@ -87,7 +94,7 @@ struct OutputOptions {
         switch format {
         case .text, .markdown:
             return true
-        case .json, .html, .htmlOpen:
+        case .json, .rawJson, .html, .htmlOpen:
             return false // These formats include everything
         }
     }

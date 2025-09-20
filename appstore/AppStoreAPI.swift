@@ -121,9 +121,8 @@ class AppStoreAPI {
             queryItems.append(URLQueryItem(name: "limit", value: String(limit)))
         }
 
-        if let storefront = storefront {
-            queryItems.append(URLQueryItem(name: "country", value: storefront))  // API uses 'country' parameter
-        }
+        // Always include storefront, defaulting to US
+        queryItems.append(URLQueryItem(name: "country", value: storefront ?? "US"))  // API uses 'country' parameter
 
         if let attribute = attribute {
             queryItems.append(URLQueryItem(name: "attribute", value: attribute))
@@ -224,9 +223,8 @@ class AppStoreAPI {
         }
 
         // Add optional parameters
-        if let storefront = storefront {
-            queryItems.append(URLQueryItem(name: "country", value: storefront))  // API uses 'country' parameter
-        }
+        // Always include storefront, defaulting to US
+        queryItems.append(URLQueryItem(name: "country", value: storefront ?? "US"))  // API uses 'country' parameter
 
         if let entity = entity {
             queryItems.append(URLQueryItem(name: "entity", value: entity))

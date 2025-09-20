@@ -12,6 +12,8 @@ class LookupCommand {
             print()
         }
 
+        let startTime = Date()
+
         do {
             let result = try await api.lookupWithRawData(
                 lookupType: options.lookupType,
@@ -22,13 +24,34 @@ class LookupCommand {
                 showResponseHeaders: options.commonOptions.showResponseHeaders
             )
 
+            let endTime = Date()
+            let durationMs = Int(endTime.timeIntervalSince(startTime) * 1000)
+
             if result.apps.isEmpty && options.commonOptions.outputFormat != .json {
                 print("No results found")
                 return
             }
 
+            // Build parameters for metadata
+            var parameters: [String: Any] = [:]
+            switch options.lookupType {
+            case .id(let id):
+                parameters["id"] = id
+            case .ids(let ids):
+                parameters["ids"] = ids.joined(separator: ",")
+            case .bundleId(let bundleId):
+                parameters["bundleId"] = bundleId
+            case .url(let url):
+                parameters["url"] = url
+            }
+            parameters["storefront"] = options.commonOptions.storefront ?? "US"
+            parameters["language"] = options.commonOptions.language
+            if let entity = options.entity {
+                parameters["entity"] = entity
+            }
+
             // Use OutputManager to handle all output
-            outputManager.outputLookupResults(result.apps)
+            outputManager.outputLookupResults(result.apps, command: "lookup", parameters: parameters, durationMs: durationMs)
 
         } catch {
             print("Error: \(error.localizedDescription)")

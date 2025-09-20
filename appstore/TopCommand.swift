@@ -64,8 +64,13 @@ class TopCommand {
             return
         }
 
+        let startTime = Date()
+
         do {
             let (data, _) = try await session.data(from: url)
+
+            let endTime = Date()
+            let durationMs = Int(endTime.timeIntervalSince(startTime) * 1000)
 
             // Parse the JSON
             guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
@@ -90,14 +95,17 @@ class TopCommand {
                 return
             }
 
-            // For JSON format, output the raw data
-            if options.commonOptions.outputFormat == .json {
-                outputManager.outputRawJSON(data)
-                return
-            }
+            // Build parameters for metadata
+            let parameters: [String: Any] = [
+                "chartType": options.chartType.rawValue,
+                "storefront": options.storefront,
+                "limit": options.limit,
+                "genre": options.genre ?? 0,
+                "url": urlString
+            ]
 
             // Use OutputManager to handle all output
-            outputManager.outputTopResults(entries, title: title)
+            outputManager.outputTopResults(data, entries: entries, title: title, command: "top", parameters: parameters, durationMs: durationMs)
 
         } catch {
             print("Error: \(error.localizedDescription)")

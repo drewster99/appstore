@@ -41,7 +41,7 @@ class CommonOptionsParser {
                         return ParseResult(
                             options: CommonOptions(),
                             remainingArgs: [],
-                            error: "Invalid output format '\(args[i])'. Valid formats: text, json, html, html-open, markdown"
+                            error: "Invalid output format '\(args[i])'. Valid formats: text, json, raw-json, html, html-open, markdown"
                         )
                     }
                 } else {
@@ -130,7 +130,6 @@ class CommonOptionsParser {
                         error: "\(arg) requires a value"
                     )
                 }
-
 
             default:
                 remainingArgs.append(arg)

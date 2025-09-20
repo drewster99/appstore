@@ -59,7 +59,7 @@ class HelpCommand {
                                      descriptionTerm - Description only
                                      artistTerm - Artist/developer name
             --genre <id>           Filter by genre ID (e.g., 6014 for Games)
-            --output-format <fmt>  Output format (text, json, markdown, html)
+            --output-format <fmt>  Output format (text, json, raw-json, markdown, html)
             --verbosity <level>    Detail level:
                                      minimal  - Single line per app
                                      summary  - Key details (default)
@@ -128,7 +128,7 @@ class HelpCommand {
             --entity <type>        Get related content (e.g., software)
             --show-request         Display the API request details
             --show-response-headers Display the HTTP response headers
-            --output-format <fmt>  Output format (text, json, markdown, html)
+            --output-format <fmt>  Output format (text, json, raw-json, markdown, html)
             --verbosity <level>    Detail level:
                                      minimal  - Single line per app
                                      summary  - Key details (default)
@@ -174,7 +174,7 @@ class HelpCommand {
             --country <code>       Alias for --storefront (for compatibility)
             --language <code>      Language for results (e.g., en_us, ja_jp, default: en_us)
             --genre <id>           Genre ID for filtering (e.g., 6014 for Games)
-            --output-format <fmt>  Output format (text, json, markdown, html)
+            --output-format <fmt>  Output format (text, json, raw-json, markdown, html)
             --verbosity <level>    Detail level:
                                      minimal  - Rank, bundle ID, price, name
                                      summary  - Detailed info (default)
@@ -258,7 +258,7 @@ class HelpCommand {
             charttypes     List all chart types for top lists
 
         OPTIONS:
-            --output-format <fmt>  Output format (text, json)
+            --output-format <fmt>  Output format (text, json, raw-json)
 
         EXAMPLES:
             appstore list storefronts

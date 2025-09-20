@@ -32,19 +32,22 @@ class ListCommand {
     private let session = URLSession.shared
 
     func execute(options: ListOptions) async {
+        let startTime = Date()
+        let outputManager = OutputManager(options: options.commonOptions)
+
         switch options.listType {
         case .storefronts:
-            await listStorefronts(outputFormat: options.outputFormat)
+            await listStorefronts(outputManager: outputManager, options: options, startTime: startTime)
         case .genres:
-            await listGenres(outputFormat: options.outputFormat)
+            await listGenres(outputManager: outputManager, options: options, startTime: startTime)
         case .attributes:
-            listAttributes(outputFormat: options.outputFormat)
+            listAttributes(outputManager: outputManager, options: options, startTime: startTime)
         case .charttypes:
-            listChartTypes(outputFormat: options.outputFormat)
+            listChartTypes(outputManager: outputManager, options: options, startTime: startTime)
         }
     }
 
-    private func listStorefronts(outputFormat: OutputFormat) async {
+    private func listStorefronts(outputManager: OutputManager, options: ListOptions, startTime: Date) async {
         // Note: Apple doesn't provide an API to list all storefronts,
         // so we maintain a hardcoded list of known storefronts
         let storefronts = [
@@ -105,35 +108,41 @@ class ListCommand {
             ("ke", "Kenya")
         ]
 
-        if outputFormat == .json {
-            var jsonData: [String: Any] = [:]
-            for (code, name) in storefronts {
-                jsonData[code] = name
-            }
+        let endTime = Date()
+        let durationMs = Int(endTime.timeIntervalSince(startTime) * 1000)
 
-            if let data = try? JSONSerialization.data(withJSONObject: jsonData, options: [.prettyPrinted, .sortedKeys]),
-               let jsonString = String(data: data, encoding: .utf8) {
-                print(jsonString)
-            }
-            return
-        }
-
-        print("Available App Store Storefronts (static):")
-        print(String(repeating: "-", count: 43))
-
+        // Build JSON data structure
+        var jsonData: [String: Any] = [:]
         for (code, name) in storefronts {
-            print("  \(code) - \(name)")
+            jsonData[code] = name
         }
 
-        print()
-        print("Use with: --storefront <code>")
-        print("Example: appstore search twitter --storefront gb")
+        let parameters: [String: Any] = [
+            "listType": "storefronts"
+        ]
+
+        // Use OutputManager for all output
+        if options.outputFormat == .json || options.outputFormat == .rawJson {
+            outputManager.outputListResults(jsonData, command: "list", parameters: parameters, durationMs: durationMs)
+        } else {
+            // Text output
+            print("Available App Store Storefronts (static):")
+            print(String(repeating: "-", count: 43))
+
+            for (code, name) in storefronts {
+                print("  \(code) - \(name)")
+            }
+
+            print()
+            print("Use with: --storefront <code>")
+            print("Example: appstore search twitter --storefront gb")
+        }
     }
 
-    private func listGenres(outputFormat: OutputFormat) async {
+    private func listGenres(outputManager: OutputManager, options: ListOptions, startTime: Date) async {
         // Try to fetch from API first
         if let apiGenres = await fetchGenresFromAPI() {
-            displayGenres(apiGenres, outputFormat: outputFormat, source: "API")
+            displayGenres(apiGenres, outputManager: outputManager, options: options, startTime: startTime, source: "API")
             return
         }
 
@@ -168,24 +177,14 @@ class ListCommand {
             (6027, "Graphics & Design")
         ]
 
-        if outputFormat == .json {
-            var jsonData: [String: Any] = [:]
-            for (id, name) in genres {
-                jsonData[String(id)] = name
-            }
-
-            if let data = try? JSONSerialization.data(withJSONObject: jsonData, options: [.prettyPrinted, .sortedKeys]),
-               let jsonString = String(data: data, encoding: .utf8) {
-                print(jsonString)
-            }
-            return
-        }
-
-        displayGenres(genres, outputFormat: outputFormat, source: "cached")
+        displayGenres(genres, outputManager: outputManager, options: options, startTime: startTime, source: "cached")
     }
 
-    private func listAttributes(outputFormat: OutputFormat) {
-        if outputFormat == .json {
+    private func listAttributes(outputManager: OutputManager, options: ListOptions, startTime: Date) {
+        let endTime = Date()
+        let durationMs = Int(endTime.timeIntervalSince(startTime) * 1000)
+
+        if options.outputFormat == .json || options.outputFormat == .rawJson {
             var jsonData: [String: Any] = [:]
 
             // Recommended attributes
@@ -203,10 +202,11 @@ class ListCommand {
             jsonData["recommended"] = recommended
             jsonData["other"] = other
 
-            if let data = try? JSONSerialization.data(withJSONObject: jsonData, options: [.prettyPrinted, .sortedKeys]),
-               let jsonString = String(data: data, encoding: .utf8) {
-                print(jsonString)
-            }
+            let parameters: [String: Any] = [
+                "listType": "attributes"
+            ]
+
+            outputManager.outputListResults(jsonData, command: "list", parameters: parameters, durationMs: durationMs)
             return
         }
 
@@ -231,8 +231,11 @@ class ListCommand {
         print("Example: appstore search editor --attribute titleTerm")
     }
 
-    private func listChartTypes(outputFormat: OutputFormat) {
-        if outputFormat == .json {
+    private func listChartTypes(outputManager: OutputManager, options: ListOptions, startTime: Date) {
+        let endTime = Date()
+        let durationMs = Int(endTime.timeIntervalSince(startTime) * 1000)
+
+        if options.outputFormat == .json || options.outputFormat == .rawJson {
             var jsonData: [String: Any] = [:]
 
             for type in TopChartType.allCases {
@@ -260,10 +263,11 @@ class ListCommand {
                 jsonData[String(describing: type)] = typeData
             }
 
-            if let data = try? JSONSerialization.data(withJSONObject: jsonData, options: [.prettyPrinted, .sortedKeys]),
-               let jsonString = String(data: data, encoding: .utf8) {
-                print(jsonString)
-            }
+            let parameters: [String: Any] = [
+                "listType": "charttypes"
+            ]
+
+            outputManager.outputListResults(jsonData, command: "list", parameters: parameters, durationMs: durationMs)
             return
         }
 
@@ -337,17 +341,22 @@ class ListCommand {
 
     // MARK: - Display Helper Methods
 
-    private func displayGenres(_ genres: [(Int, String)], outputFormat: OutputFormat, source: String) {
-        if outputFormat == .json {
+    private func displayGenres(_ genres: [(Int, String)], outputManager: OutputManager, options: ListOptions, startTime: Date, source: String) {
+        let endTime = Date()
+        let durationMs = Int(endTime.timeIntervalSince(startTime) * 1000)
+
+        if options.outputFormat == .json || options.outputFormat == .rawJson {
             var jsonData: [String: Any] = ["_source": source]
             for (id, name) in genres {
                 jsonData[String(id)] = name
             }
 
-            if let data = try? JSONSerialization.data(withJSONObject: jsonData, options: [.prettyPrinted, .sortedKeys]),
-               let jsonString = String(data: data, encoding: .utf8) {
-                print(jsonString)
-            }
+            let parameters: [String: Any] = [
+                "listType": "genres",
+                "source": source
+            ]
+
+            outputManager.outputListResults(jsonData, command: "list", parameters: parameters, durationMs: durationMs)
             return
         }
 
