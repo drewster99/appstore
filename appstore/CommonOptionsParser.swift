@@ -127,28 +127,6 @@ class CommonOptionsParser {
                     )
                 }
 
-            case "--output-mode":
-                i += 1
-                if i < args.count {
-                    let modeString = args[i].lowercased()
-                    if let mode = OutputMode(rawValue: modeString) {
-                        let converted = OutputOptions.fromOutputMode(mode)
-                        outputFormat = converted.format
-                        verbosity = converted.verbosity
-                    } else {
-                        return ParseResult(
-                            options: CommonOptions(),
-                            remainingArgs: [],
-                            error: "Invalid output mode '\(args[i])'. Valid modes: oneline, summary, expanded, verbose, complete, json"
-                        )
-                    }
-                } else {
-                    return ParseResult(
-                        options: CommonOptions(),
-                        remainingArgs: [],
-                        error: "--output-mode requires a value"
-                    )
-                }
 
             default:
                 remainingArgs.append(arg)

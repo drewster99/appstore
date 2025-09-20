@@ -65,7 +65,6 @@ class HelpCommand {
                                      expanded - Additional info
                                      verbose  - All standard fields
                                      complete - All available fields
-            --output-mode <mode>   Legacy option (use --verbosity and --output-format instead)
             --full-description     Show complete app descriptions
 
         SEARCH TIPS:

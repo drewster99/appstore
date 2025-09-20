@@ -1,8 +1,5 @@
 import Foundation
 
-// Import OutputMode for compatibility during transition
-// This will be removed once fully migrated
-
 // Verbosity levels - controls how much detail to show
 enum Verbosity: String, CaseIterable {
     case minimal    // One-line output
@@ -93,47 +90,6 @@ struct OutputOptions {
         case .json, .html, .htmlOpen:
             return false // These formats include everything
         }
-    }
-
-    // Compatibility: Create from old OutputMode
-    static func fromOutputMode(_ mode: OutputMode, outputFile: String? = nil, inputFile: String? = nil) -> OutputOptions {
-        switch mode {
-        case .json:
-            return OutputOptions(format: .json, verbosity: .complete, outputFile: outputFile, inputFile: inputFile)
-        case .oneline:
-            return OutputOptions(format: .text, verbosity: .minimal, outputFile: outputFile, inputFile: inputFile)
-        case .summary:
-            return OutputOptions(format: .text, verbosity: .summary, outputFile: outputFile, inputFile: inputFile)
-        case .expanded:
-            return OutputOptions(format: .text, verbosity: .expanded, outputFile: outputFile, inputFile: inputFile)
-        case .verbose:
-            return OutputOptions(format: .text, verbosity: .verbose, outputFile: outputFile, inputFile: inputFile)
-        case .complete:
-            return OutputOptions(format: .text, verbosity: .complete, outputFile: outputFile, inputFile: inputFile)
-        }
-    }
-
-    // Compatibility: Get equivalent OutputMode (for transition period)
-    var asOutputMode: OutputMode? {
-        if format == .json {
-            return .json
-        }
-        if format == .text {
-            switch verbosity {
-            case .minimal:
-                return .oneline
-            case .summary:
-                return .summary
-            case .expanded:
-                return .expanded
-            case .verbose:
-                return .verbose
-            case .complete:
-                return .complete
-            }
-        }
-        // For markdown and HTML, we'll handle them specially
-        return nil
     }
 
     // Check if this is a special format that needs custom handling

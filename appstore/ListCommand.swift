@@ -24,17 +24,8 @@ struct ListOptions {
     let commonOptions: CommonOptions
     let listType: ListType
 
-    // Compatibility accessors for migration
-    var outputMode: OutputMode {
-        OutputOptions(
-            format: commonOptions.outputFormat,
-            verbosity: commonOptions.verbosity,
-            outputFile: commonOptions.outputFile,
-            inputFile: commonOptions.inputFile
-        ).asOutputMode ?? .summary
-    }
-    var outputFormat: OutputFormat? { commonOptions.outputFormat }
-    var verbosity: Verbosity? { commonOptions.verbosity }
+    var outputFormat: OutputFormat { commonOptions.outputFormat }
+    var verbosity: Verbosity { commonOptions.verbosity }
 }
 
 class ListCommand {
@@ -43,17 +34,17 @@ class ListCommand {
     func execute(options: ListOptions) async {
         switch options.listType {
         case .storefronts:
-            await listStorefronts(outputMode: options.outputMode)
+            await listStorefronts(outputFormat: options.outputFormat)
         case .genres:
-            await listGenres(outputMode: options.outputMode)
+            await listGenres(outputFormat: options.outputFormat)
         case .attributes:
-            listAttributes(outputMode: options.outputMode)
+            listAttributes(outputFormat: options.outputFormat)
         case .charttypes:
-            listChartTypes(outputMode: options.outputMode)
+            listChartTypes(outputFormat: options.outputFormat)
         }
     }
 
-    private func listStorefronts(outputMode: OutputMode) async {
+    private func listStorefronts(outputFormat: OutputFormat) async {
         // Note: Apple doesn't provide an API to list all storefronts,
         // so we maintain a hardcoded list of known storefronts
         let storefronts = [
@@ -114,7 +105,7 @@ class ListCommand {
             ("ke", "Kenya")
         ]
 
-        if outputMode == .json {
+        if outputFormat == .json {
             var jsonData: [String: Any] = [:]
             for (code, name) in storefronts {
                 jsonData[code] = name
@@ -139,10 +130,10 @@ class ListCommand {
         print("Example: appstore search twitter --storefront gb")
     }
 
-    private func listGenres(outputMode: OutputMode) async {
+    private func listGenres(outputFormat: OutputFormat) async {
         // Try to fetch from API first
         if let apiGenres = await fetchGenresFromAPI() {
-            displayGenres(apiGenres, outputMode: outputMode, source: "API")
+            displayGenres(apiGenres, outputFormat: outputFormat, source: "API")
             return
         }
 
@@ -177,7 +168,7 @@ class ListCommand {
             (6027, "Graphics & Design")
         ]
 
-        if outputMode == .json {
+        if outputFormat == .json {
             var jsonData: [String: Any] = [:]
             for (id, name) in genres {
                 jsonData[String(id)] = name
@@ -190,11 +181,11 @@ class ListCommand {
             return
         }
 
-        displayGenres(genres, outputMode: outputMode, source: "cached")
+        displayGenres(genres, outputFormat: outputFormat, source: "cached")
     }
 
-    private func listAttributes(outputMode: OutputMode) {
-        if outputMode == .json {
+    private func listAttributes(outputFormat: OutputFormat) {
+        if outputFormat == .json {
             var jsonData: [String: Any] = [:]
 
             // Recommended attributes
@@ -240,8 +231,8 @@ class ListCommand {
         print("Example: appstore search editor --attribute titleTerm")
     }
 
-    private func listChartTypes(outputMode: OutputMode) {
-        if outputMode == .json {
+    private func listChartTypes(outputFormat: OutputFormat) {
+        if outputFormat == .json {
             var jsonData: [String: Any] = [:]
 
             for type in TopChartType.allCases {
@@ -346,8 +337,8 @@ class ListCommand {
 
     // MARK: - Display Helper Methods
 
-    private func displayGenres(_ genres: [(Int, String)], outputMode: OutputMode, source: String) {
-        if outputMode == .json {
+    private func displayGenres(_ genres: [(Int, String)], outputFormat: OutputFormat, source: String) {
+        if outputFormat == .json {
             var jsonData: [String: Any] = ["_source": source]
             for (id, name) in genres {
                 jsonData[String(id)] = name

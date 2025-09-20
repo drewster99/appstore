@@ -1,34 +1,5 @@
 import Foundation
 
-enum OutputMode: String, CaseIterable {
-    case oneline
-    case summary
-    case expanded
-    case verbose
-    case complete
-    case json
-
-    static var `default`: OutputMode {
-        return .summary
-    }
-
-    var description: String {
-        switch self {
-        case .oneline:
-            return "Single line output with essential info"
-        case .summary:
-            return "Default output with key app details"
-        case .expanded:
-            return "Summary plus ratings, size, and advisories"
-        case .verbose:
-            return "Expanded plus URLs, languages, and features"
-        case .complete:
-            return "All available fields from the JSON response"
-        case .json:
-            return "Raw JSON output (pretty-printed)"
-        }
-    }
-}
 
 enum SearchAttribute: String, CaseIterable {
     // Primary software attributes
@@ -150,16 +121,8 @@ struct SearchOptions {
     static let maxLimit = 200
     static let minLimit = 0  // 0 means unlimited
 
-    // Compatibility accessors for migration
+    // Compatibility accessors
     var showRequest: Bool { commonOptions.showRequest }
-    var outputMode: OutputMode {
-        OutputOptions(
-            format: commonOptions.outputFormat,
-            verbosity: commonOptions.verbosity,
-            outputFile: commonOptions.outputFile,
-            inputFile: commonOptions.inputFile
-        ).asOutputMode ?? .summary
-    }
     var storefront: String? { commonOptions.storefront }
     var outputFile: String? { commonOptions.outputFile }
     var inputFile: String? { commonOptions.inputFile }
@@ -180,16 +143,8 @@ struct LookupOptions {
     let lookupType: LookupType
     let entity: String? // For related content lookups
 
-    // Compatibility accessors for migration
+    // Compatibility accessors
     var showRequest: Bool { commonOptions.showRequest }
-    var outputMode: OutputMode {
-        OutputOptions(
-            format: commonOptions.outputFormat,
-            verbosity: commonOptions.verbosity,
-            outputFile: commonOptions.outputFile,
-            inputFile: commonOptions.inputFile
-        ).asOutputMode ?? .summary
-    }
     var storefront: String? { commonOptions.storefront }
     var outputFile: String? { commonOptions.outputFile }
     var inputFile: String? { commonOptions.inputFile }

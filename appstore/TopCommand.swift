@@ -36,15 +36,7 @@ struct TopOptions {
 
     // Compatibility accessors for migration
     var showRequest: Bool { commonOptions.showRequest }
-    var outputMode: OutputMode {
-        OutputOptions(
-            format: commonOptions.outputFormat,
-            verbosity: commonOptions.verbosity,
-            outputFile: commonOptions.outputFile,
-            inputFile: commonOptions.inputFile
-        ).asOutputMode ?? .summary
-    }
-    var storefront: String { commonOptions.storefront ?? "us" }
+    var storefront: String { commonOptions.storefront ?? "US" }
     var outputFile: String? { commonOptions.outputFile }
     var inputFile: String? { commonOptions.inputFile }
     var outputFormat: OutputFormat? { commonOptions.outputFormat }
