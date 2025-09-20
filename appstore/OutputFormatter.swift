@@ -18,22 +18,31 @@ class TextFormatter: OutputFormatter {
 
         if !apps.isEmpty {
             output += "Found \(apps.count) result(s):\n"
-            output += String(repeating: "-", count: 80) + "\n"
 
             switch options.verbosity {
             case .minimal:
+                // Minimal has its own formatting with table headers
                 output += formatMinimal(apps: apps)
-            case .summary:
-                output += formatSummary(apps: apps, fullDescription: options.fullDescription)
-            case .expanded:
-                output += formatExpanded(apps: apps, fullDescription: options.fullDescription)
-            case .verbose:
-                output += formatVerbose(apps: apps, fullDescription: options.fullDescription)
-            case .complete:
-                output += formatComplete(apps: apps)
+            default:
+                // Other verbosity levels use separator
+                output += String(repeating: "-", count: 80) + "\n"
+
+                switch options.verbosity {
+                case .summary:
+                    output += formatSummary(apps: apps, fullDescription: options.fullDescription)
+                case .expanded:
+                    output += formatExpanded(apps: apps, fullDescription: options.fullDescription)
+                case .verbose:
+                    output += formatVerbose(apps: apps, fullDescription: options.fullDescription)
+                case .complete:
+                    output += formatComplete(apps: apps)
+                default:
+                    break
+                }
             }
 
-            output += String(repeating: "=", count: 80)
+            // Add footer separator for all verbosity levels
+            output += String(repeating: "-", count: 80)
         } else {
             output += "No results found"
         }
@@ -56,23 +65,25 @@ class TextFormatter: OutputFormatter {
             output += formatTopComplete(entries: entries)
         }
 
-        output += String(repeating: "=", count: 80)
+        output += String(repeating: "-", count: 80)
 
         return output
     }
 
     private func formatMinimal(apps: [App]) -> String {
         var output = ""
-        // Add header for table format
-        output += "App ID      Bundle ID                          Version    Price    Rating  Reviews  Name\n"
-        output += String(repeating: "-", count: 100) + "\n"
 
-        for app in apps {
+        // Add header for table format
+        output += "#  App ID      Bundle ID                          Version    Price    Rating  Reviews  Name\n"
+        output += String(repeating: "-", count: 80) + "\n"
+
+        for (index, app) in apps.enumerated() {
             let rating = app.averageUserRating.map { String(format: "%.1f", $0) } ?? "N/A"
             let ratingCount = app.userRatingCount.map { String($0) } ?? "0"
             let price = app.formattedPrice ?? "Free"
 
             // Format with fixed widths for better alignment
+            let numStr = String(index + 1).padding(toLength: 2, withPad: " ", startingAt: 0)
             let idStr = String(app.trackId).padding(toLength: 11, withPad: " ", startingAt: 0)
             let bundleStr = app.bundleId.padding(toLength: 35, withPad: " ", startingAt: 0)
             let versionStr = app.version.padding(toLength: 10, withPad: " ", startingAt: 0)
@@ -80,8 +91,9 @@ class TextFormatter: OutputFormatter {
             let ratingStr = rating.padding(toLength: 7, withPad: " ", startingAt: 0)
             let countStr = ratingCount.padding(toLength: 8, withPad: " ", startingAt: 0)
 
-            output += "\(idStr) \(bundleStr) \(versionStr) \(priceStr) \(ratingStr) \(countStr) \(app.trackName)\n"
+            output += "\(numStr) \(idStr) \(bundleStr) \(versionStr) \(priceStr) \(ratingStr) \(countStr) \(app.trackName)\n"
         }
+
         return output
     }
 
