@@ -65,7 +65,7 @@ class HelpCommand {
                                      expanded - Additional info
                                      verbose  - All standard fields
                                      complete - All available fields
-            --output-mode <mode>   Legacy output mode (for compatibility)
+            --output-mode <mode>   Legacy option (use --verbosity and --output-format instead)
             --full-description     Show complete app descriptions
 
         SEARCH TIPS:
@@ -91,9 +91,9 @@ class HelpCommand {
             appstore search --attribute softwareDeveloper "Facebook Inc"
             appstore search --genre 6014 puzzle                # Search in Games category
             appstore search --storefront FR --genre 6014 puzzle   # French Games
-            appstore search --output-mode oneline spotify
-            appstore search --output-mode verbose "adobe photoshop"
-            appstore search --output-mode json spotify
+            appstore search --verbosity minimal spotify
+            appstore search --verbosity verbose "adobe photoshop"
+            appstore search --output-format json spotify
             appstore search --unlimited "photo editor"
             appstore search --show-request twitter
         """)
@@ -127,13 +127,13 @@ class HelpCommand {
             --language <code>      Language for results (e.g., en_us, ja_jp, default: en_us)
             --entity <type>        Get related content (e.g., software)
             --show-request         Display the API request details
-            --output-mode <mode>   Output format:
-                                     oneline  - Single line per app
+            --output-format <fmt>  Output format (text, json, markdown, html)
+            --verbosity <level>    Detail level:
+                                     minimal  - Single line per app
                                      summary  - Key details (default)
-                                     expanded - Additional info (size, ratings)
-                                     verbose  - All standard fields plus URLs
-                                     complete - All JSON fields displayed
-                                     json     - Raw JSON response (pretty-printed)
+                                     expanded - Additional info
+                                     verbose  - All standard fields
+                                     complete - All available fields
             --help, -h             Display this help message
 
         EXAMPLES:
@@ -144,7 +144,7 @@ class HelpCommand {
             appstore lookup --bundle-id com.spotify.client
             appstore lookup --url "https://apps.apple.com/us/app/yelp/id284910350"
             appstore lookup 284910350 --storefront JP
-            appstore lookup com.facebook.Facebook --output-mode json
+            appstore lookup com.facebook.Facebook --output-format json
         """)
     }
 
@@ -173,10 +173,13 @@ class HelpCommand {
             --country <code>       Alias for --storefront (for compatibility)
             --language <code>      Language for results (e.g., en_us, ja_jp, default: en_us)
             --genre <id>           Genre ID for filtering (e.g., 6014 for Games)
-            --output-mode <mode>   Output format:
-                                     oneline  - Rank, bundle ID, price, name
+            --output-format <fmt>  Output format (text, json, markdown, html)
+            --verbosity <level>    Detail level:
+                                     minimal  - Rank, bundle ID, price, name
                                      summary  - Detailed info (default)
-                                     json     - Raw JSON response
+                                     expanded - Additional info
+                                     verbose  - All standard fields
+                                     complete - All available fields
             --help, -h             Display this help message
 
         GENRE IDS (Common):
@@ -202,7 +205,7 @@ class HelpCommand {
             appstore top free --storefront JP      # Top free apps in Japan
             appstore top paid --genre 6014         # Top paid games
             appstore top free --storefront GB --limit 50   # Top 50 free apps in UK
-            appstore top newfree --output-mode json  # New free apps as JSON
+            appstore top newfree --output-format json  # New free apps as JSON
         """)
     }
 
@@ -245,7 +248,7 @@ class HelpCommand {
         appstore list - List available values for various options
 
         USAGE:
-            appstore list <type> [--output-mode <mode>]
+            appstore list <type> [--output-format <format>]
 
         LIST TYPES:
             storefronts    List all available App Store storefronts/country codes
@@ -254,14 +257,14 @@ class HelpCommand {
             charttypes     List all chart types for top lists
 
         OPTIONS:
-            --output-mode <mode>  Output format (summary, json)
+            --output-format <fmt>  Output format (text, json)
 
         EXAMPLES:
             appstore list storefronts
             appstore list genres
             appstore list attributes
             appstore list charttypes
-            appstore list storefronts --output-mode json
+            appstore list storefronts --output-format json
 
         ALIASES:
             You can use singular or plural forms:
