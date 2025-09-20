@@ -106,7 +106,7 @@ class AppStoreAPI {
         return result.apps
     }
 
-    func searchWithRawData(query: String, limit: Int = 20, storefront: String? = nil, attribute: String? = nil, genre: Int? = nil, language: String? = nil, showRequest: Bool = false) async throws -> (apps: [App], rawData: Data) {
+    func searchWithRawData(query: String, limit: Int = 20, storefront: String? = nil, attribute: String? = nil, genre: Int? = nil, language: String? = nil, showRequest: Bool = false, showResponseHeaders: Bool = false) async throws -> (apps: [App], rawData: Data) {
         guard var urlComponents = URLComponents(string: searchURL) else {
             throw AppStoreAPIError.invalidURL
         }
@@ -143,8 +143,14 @@ class AppStoreAPI {
             throw AppStoreAPIError.invalidURL
         }
 
+        // Create request with 12-hour cache control
+        var request = URLRequest(url: url)
+        request.setValue("max-age=43200", forHTTPHeaderField: "Cache-Control")
+
         if showRequest {
             print("Request URL: \(url.absoluteString)")
+            print("Request Headers:")
+            print("  Cache-Control: max-age=43200")
             print("Parameters:")
             for item in queryItems {
                 print("  \(item.name): \(item.value ?? "")")
@@ -153,7 +159,18 @@ class AppStoreAPI {
         }
 
         do {
-            let (data, response) = try await session.data(from: url)
+            let (data, response) = try await session.data(for: request)
+
+            // Show response headers if requested
+            if showResponseHeaders {
+                print("Response Headers:")
+                if let httpResponse = response as? HTTPURLResponse {
+                    for (key, value) in httpResponse.allHeaderFields {
+                        print("  \(key): \(value)")
+                    }
+                    print()
+                }
+            }
 
             // Check for HTTP errors
             try handleAPIResponse(data: data, response: response, storefront: storefront, attribute: attribute)
@@ -182,7 +199,7 @@ class AppStoreAPI {
         }
     }
 
-    func lookupWithRawData(lookupType: LookupType, storefront: String? = nil, entity: String? = nil, language: String? = nil, showRequest: Bool = false) async throws -> (apps: [App], rawData: Data) {
+    func lookupWithRawData(lookupType: LookupType, storefront: String? = nil, entity: String? = nil, language: String? = nil, showRequest: Bool = false, showResponseHeaders: Bool = false) async throws -> (apps: [App], rawData: Data) {
         guard var urlComponents = URLComponents(string: lookupURL) else {
             throw AppStoreAPIError.invalidURL
         }
@@ -225,8 +242,14 @@ class AppStoreAPI {
             throw AppStoreAPIError.invalidURL
         }
 
+        // Create request with 12-hour cache control
+        var request = URLRequest(url: url)
+        request.setValue("max-age=43200", forHTTPHeaderField: "Cache-Control")
+
         if showRequest {
             print("Request URL: \(url.absoluteString)")
+            print("Request Headers:")
+            print("  Cache-Control: max-age=43200")
             print("Parameters:")
             for item in queryItems {
                 print("  \(item.name): \(item.value ?? "")")
@@ -235,7 +258,18 @@ class AppStoreAPI {
         }
 
         do {
-            let (data, response) = try await session.data(from: url)
+            let (data, response) = try await session.data(for: request)
+
+            // Show response headers if requested
+            if showResponseHeaders {
+                print("Response Headers:")
+                if let httpResponse = response as? HTTPURLResponse {
+                    for (key, value) in httpResponse.allHeaderFields {
+                        print("  \(key): \(value)")
+                    }
+                    print()
+                }
+            }
 
             // Check for HTTP errors
             try handleAPIResponse(data: data, response: response, storefront: storefront)

@@ -27,7 +27,8 @@ class SearchCommand {
                 attribute: options.attribute,
                 genre: options.genre,
                 language: options.commonOptions.language,
-                showRequest: options.commonOptions.showRequest
+                showRequest: options.commonOptions.showRequest,
+                showResponseHeaders: options.commonOptions.showResponseHeaders
             )
 
             let endTime = Date()

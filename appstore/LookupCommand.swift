@@ -18,7 +18,8 @@ class LookupCommand {
                 storefront: options.commonOptions.storefront,
                 entity: options.entity,
                 language: options.commonOptions.language,
-                showRequest: options.commonOptions.showRequest
+                showRequest: options.commonOptions.showRequest,
+                showResponseHeaders: options.commonOptions.showResponseHeaders
             )
 
             if result.apps.isEmpty && options.commonOptions.outputFormat != .json {

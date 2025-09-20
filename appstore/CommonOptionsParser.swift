@@ -20,6 +20,7 @@ class CommonOptionsParser {
         var inputFile: String?
         var fullDescription = false
         var showRequest = EnvironmentConfig.showRequest
+        var showResponseHeaders = false
         var storefront = EnvironmentConfig.defaultStorefront != "us" ? EnvironmentConfig.defaultStorefront : nil
         var language: String = "en_us"
 
@@ -102,6 +103,9 @@ class CommonOptionsParser {
             case "--show-request":
                 showRequest = true
 
+            case "--show-response-headers":
+                showResponseHeaders = true
+
             case "--country", "--storefront":
                 i += 1
                 if i < args.count {
@@ -142,6 +146,7 @@ class CommonOptionsParser {
             inputFile: inputFile,
             fullDescription: fullDescription,
             showRequest: showRequest,
+            showResponseHeaders: showResponseHeaders,
             storefront: storefront,
             language: language
         )

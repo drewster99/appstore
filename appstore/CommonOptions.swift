@@ -7,6 +7,7 @@ struct CommonOptions {
     let inputFile: String?
     let fullDescription: Bool
     let showRequest: Bool
+    let showResponseHeaders: Bool
     let storefront: String?
     let language: String
 
@@ -18,6 +19,7 @@ struct CommonOptions {
             inputFile: nil,
             fullDescription: false,
             showRequest: false,
+            showResponseHeaders: false,
             storefront: nil,
             language: "en_us"
         )
@@ -30,6 +32,7 @@ struct CommonOptions {
         inputFile: String? = nil,
         fullDescription: Bool = false,
         showRequest: Bool = false,
+        showResponseHeaders: Bool = false,
         storefront: String? = nil,
         language: String? = nil
     ) {
@@ -39,6 +42,7 @@ struct CommonOptions {
         self.inputFile = inputFile
         self.fullDescription = fullDescription
         self.showRequest = showRequest
+        self.showResponseHeaders = showResponseHeaders
         // Convert storefront to uppercase
         self.storefront = storefront?.uppercased()
         self.language = language ?? "en_us"

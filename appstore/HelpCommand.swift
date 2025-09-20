@@ -47,6 +47,7 @@ class HelpCommand {
         OPTIONS:
             --help, -h              Display this help message
             --show-request         Display the API request details
+            --show-response-headers Display the HTTP response headers
             --limit <n>            Number of results (1-200, default: 20, 0 for unlimited)
             --unlimited            Don't limit results (same as --limit 0)
             --storefront <code>    Storefront code (e.g., US, JP, GB)
@@ -126,6 +127,7 @@ class HelpCommand {
             --language <code>      Language for results (e.g., en_us, ja_jp, default: en_us)
             --entity <type>        Get related content (e.g., software)
             --show-request         Display the API request details
+            --show-response-headers Display the HTTP response headers
             --output-format <fmt>  Output format (text, json, markdown, html)
             --verbosity <level>    Detail level:
                                      minimal  - Single line per app
