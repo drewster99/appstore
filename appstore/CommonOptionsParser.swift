@@ -22,7 +22,7 @@ class CommonOptionsParser {
         var showRequest = EnvironmentConfig.showRequest
         var showResponseHeaders = false
         var storefront = EnvironmentConfig.defaultStorefront != "us" ? EnvironmentConfig.defaultStorefront : nil
-        var language: String = "en_us"
+        var language: String = EnvironmentConfig.defaultLanguage
 
         var remainingArgs = [String]()
         var i = 0

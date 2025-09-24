@@ -4,6 +4,7 @@ import Foundation
 struct EnvironmentConfig {
     // Core defaults
     static let defaultStorefront = ProcessInfo.processInfo.environment["APPSTORE_DEFAULT_STOREFRONT"] ?? "us"
+    static let defaultLanguage = ProcessInfo.processInfo.environment["APPSTORE_DEFAULT_LANGUAGE"] ?? "en-us"
 
     static var defaultLimit: Int? {
         guard let value = ProcessInfo.processInfo.environment["APPSTORE_DEFAULT_LIMIT"] else { return nil }

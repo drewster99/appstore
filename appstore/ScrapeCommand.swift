@@ -27,6 +27,7 @@ struct ScrapeOptions {
 }
 
 struct ScrapeCommand {
+    private let api = AppStoreAPI()
     private let storeIds: [String: String] = [
         "DZ": "143563", "AO": "143564", "AI": "143538", "AR": "143505",
         "AM": "143524", "AU": "143460", "AT": "143445", "AZ": "143568",
@@ -77,8 +78,6 @@ struct ScrapeCommand {
         request.timeoutInterval = 30
 
         if options.showRequest {
-            let outputManager = OutputManager(options: options.commonOptions)
-            // For now, just print request info directly
             print("Request URL: \(url)")
             print("Request Headers:")
             for (key, value) in request.allHTTPHeaderFields ?? [:] {
@@ -87,10 +86,10 @@ struct ScrapeCommand {
         }
 
         do {
+            let startTime = Date()
             let (data, response) = try await URLSession.shared.data(for: request)
 
             if options.showRequest, let httpResponse = response as? HTTPURLResponse {
-                // For now, just print response headers directly
                 print("\nResponse Headers:")
                 for (key, value) in httpResponse.allHeaderFields {
                     print("  \(key): \(value)")
@@ -102,130 +101,60 @@ struct ScrapeCommand {
                 return
             }
 
+            // For raw JSON output, just output the scrape response as-is
             if options.showRawJSON {
                 let outputManager = OutputManager(options: options.commonOptions)
                 outputManager.outputRawJSON(data)
                 return
             }
 
-            let apps = parseScrapedResults(json, limit: options.limit)
+            // Extract app IDs from bubbles
+            let appIds = extractAppIds(from: json, limit: options.limit)
 
-            if options.showJSON {
-                // Output as JSON
-                do {
-                    let jsonData = try JSONSerialization.data(withJSONObject: ["results": apps], options: [.prettyPrinted, .sortedKeys])
-                    if let jsonString = String(data: jsonData, encoding: .utf8) {
-                        print(jsonString)
-                    }
-                } catch {
-                    print("Error encoding JSON: \(error)")
-                }
-            } else {
-                displayResults(apps, options: options)
+            if appIds.isEmpty {
+                print("No results found")
+                return
             }
+
+            // Use the API to lookup full details for all app IDs
+            let lookupResult = try await api.lookupWithRawData(
+                lookupType: .ids(appIds),
+                storefront: options.storefront,
+                entity: nil,
+                language: options.language,
+                showRequest: options.showRequest,
+                showResponseHeaders: options.commonOptions.showResponseHeaders
+            )
+
+            let endTime = Date()
+            let durationMs = Int(endTime.timeIntervalSince(startTime) * 1000)
+
+            // Use OutputManager to handle all output, respecting verbosity and format options
+            let outputManager = OutputManager(options: options.commonOptions)
+
+            // Build parameters for metadata
+            let parameters: [String: Any] = [
+                "term": options.term,
+                "storefront": options.storefront,
+                "language": options.language,
+                "limit": options.limit
+            ]
+
+            outputManager.outputSearchResults(lookupResult.apps, command: "scrape", parameters: parameters, durationMs: durationMs)
 
         } catch {
             print("Error: \(error.localizedDescription)")
         }
     }
 
-    private func parseScrapedResults(_ json: [String: Any], limit: Int) -> [[String: Any]] {
-        guard let storePlatformData = json["storePlatformData"] as? [String: Any],
-              let searchData = storePlatformData["native-search-lockup-search"] as? [String: Any],
-              let results = searchData["results"] as? [String: Any] else {
-            return []
+    private func extractAppIds(from json: [String: Any], limit: Int) -> [String] {
+        // Extract app IDs from bubbles (contains all results)
+        if let bubbles = json["bubbles"] as? [[String: Any]],
+           let firstBubble = bubbles.first,
+           let results = firstBubble["results"] as? [[String: Any]] {
+            // Extract IDs from bubbles, limiting to requested amount
+            return results.prefix(limit).compactMap { $0["id"] as? String }
         }
-
-        let apps = results.compactMap { (key, value) -> [String: Any]? in
-            guard let app = value as? [String: Any] else { return nil }
-
-            var appInfo: [String: Any] = [
-                "trackId": Int(key) ?? 0,
-                "trackName": app["name"] ?? "",
-                "artistName": app["artistName"] ?? "",
-                "bundleId": app["bundleId"] ?? "",
-                "subtitle": app["subtitle"] ?? "",
-                "url": app["url"] ?? "",
-                "shortUrl": app["shortUrl"] ?? "",
-                "releaseDate": app["releaseDate"] ?? "",
-                "minimumOsVersion": app["minimumOSVersion"] ?? "",
-                "copyright": app["copyright"] ?? ""
-            ]
-
-            if let userRating = app["userRating"] as? [String: Any] {
-                appInfo["averageUserRating"] = userRating["value"]
-                appInfo["userRatingCount"] = userRating["ratingCount"]
-            }
-
-            if let offers = app["offers"] as? [[String: Any]], let firstOffer = offers.first {
-                appInfo["formattedPrice"] = firstOffer["formattedPrice"]
-                appInfo["price"] = firstOffer["price"]
-            }
-
-            if let genres = app["genreNames"] as? [String] {
-                appInfo["primaryGenreName"] = genres.first ?? ""
-                appInfo["genres"] = genres
-            }
-
-            if let contentRating = app["contentRating"] as? [String: Any] {
-                appInfo["contentAdvisoryRating"] = contentRating["label"]
-            }
-
-            if let artwork = app["artwork"] as? [[String: Any]] {
-                let artworkUrls = artwork.compactMap { art -> String? in
-                    guard let url = art["url"] as? String,
-                          let width = art["width"] as? Int,
-                          width == 512 || width == 1024 else { return nil }
-                    return url
-                }
-                if let largestArtwork = artworkUrls.first {
-                    appInfo["artworkUrl512"] = largestArtwork
-                }
-            }
-
-            if let screenshots = app["screenshotsByType"] as? [String: Any] {
-                var screenshotUrls: [String] = []
-                for (_, value) in screenshots {
-                    if let deviceScreenshots = value as? [String: Any],
-                       let urls = deviceScreenshots["urls"] as? [String] {
-                        screenshotUrls.append(contentsOf: urls)
-                    }
-                }
-                if !screenshotUrls.isEmpty {
-                    appInfo["screenshotUrls"] = screenshotUrls
-                }
-            }
-
-            return appInfo
-        }
-
-        return Array(apps.prefix(limit))
-    }
-
-    private func displayResults(_ apps: [[String: Any]], options: ScrapeOptions) {
-        // Convert dictionary format to App objects for display
-        let formatter = TextFormatter()
-
-        // For now, just display basic info
-        print("Found \(apps.count) result(s):")
-        print(String(repeating: "-", count: 80))
-
-        for (index, app) in apps.enumerated() {
-            print("\n\(index + 1). \(app["trackName"] ?? "Unknown")")
-            print("   App ID: \(app["trackId"] ?? 0)")
-            print("   Developer: \(app["artistName"] ?? "Unknown")")
-            print("   Bundle ID: \(app["bundleId"] ?? "Unknown")")
-            if let price = app["formattedPrice"] as? String {
-                print("   Price: \(price)")
-            }
-            if let rating = app["averageUserRating"] as? Double,
-               let count = app["userRatingCount"] as? Int {
-                print("   Rating: \(String(format: "%.1f", rating)) (\(count) ratings)")
-            }
-            if index < apps.count - 1 {
-                print(String(repeating: "-", count: 80))
-            }
-        }
-        print(String(repeating: "-", count: 80))
+        return []
     }
 }

@@ -13,6 +13,7 @@ class HelpCommand {
             lookup            Look up specific apps by ID, bundle ID, or URL
             top [chart]       View top charts from the App Store
             list <type>       List available values for various options
+            scrape <query>    Search using App Store scraper API (richer data)
 
         QUICK EXAMPLES:
             appstore search spotify
@@ -30,6 +31,7 @@ class HelpCommand {
             appstore lookup --help
             appstore top --help
             appstore list --help
+            appstore scrape --help
         """)
     }
 
@@ -279,6 +281,51 @@ class HelpCommand {
             --genre        (for search and top commands)
             --attribute    (for search command)
             Chart types    (for top command)
+        """)
+    }
+
+    static func showScrapeHelp() {
+        print("""
+        appstore scrape - Search using the App Store scraper API
+
+        USAGE:
+            appstore scrape [options] <query>
+
+        DESCRIPTION:
+            Uses the App Store's internal search API (same as app-store-scraper npm package)
+            to get richer app data including screenshots, user ratings, and more metadata
+            not available through the standard iTunes Search API.
+
+        OPTIONS:
+            --help, -h              Display this help message
+            --show-request         Display the API request details
+            --show-response-headers Display the HTTP response headers
+            --show-json             Output results in JSON format
+            --show-raw-json         Output raw JSON response without processing
+            --output-format <format> Choose output format: json, raw-json
+            --storefront <code>      Two-letter country code (default: us)
+            --language <code>        Language code (default: en-us)
+            --limit <num>            Maximum results to display (default: 25)
+            --verbosity <level>      Output detail level:
+                                      minimal  - App name only
+                                      summary  - Name, developer, price
+                                      expanded - Includes ratings, size, version
+                                      verbose  - Includes release notes, languages
+                                      complete - All available fields
+
+        EXAMPLES:
+            appstore scrape spotify
+            appstore scrape --limit 5 "photo editor"
+            appstore scrape --storefront gb twitter
+            appstore scrape --show-json instagram
+            appstore scrape --verbosity expanded facebook
+
+        DIFFERENCES FROM 'search':
+            - Returns screenshots and icon artwork
+            - Includes more detailed rating information
+            - Provides subtitle and copyright information
+            - Uses different internal API endpoint
+            - May return slightly different result ordering
         """)
     }
 }

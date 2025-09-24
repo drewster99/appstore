@@ -21,7 +21,7 @@ struct CommonOptions {
             showRequest: false,
             showResponseHeaders: false,
             storefront: nil,
-            language: "en_us"
+            language: "en-us"
         )
     }
 
@@ -45,6 +45,6 @@ struct CommonOptions {
         self.showResponseHeaders = showResponseHeaders
         // Convert storefront to uppercase
         self.storefront = storefront?.uppercased()
-        self.language = language ?? "en_us"
+        self.language = language ?? "en-us"
     }
 }

@@ -29,6 +29,10 @@ struct AppStoreCLI {
             let listCommand = ListCommand()
             await listCommand.execute(options: options)
 
+        case .scrape(let options):
+            let scrapeCommand = ScrapeCommand()
+            await scrapeCommand.execute(options: options)
+
         case .searchHelp:
             HelpCommand.showSearchHelp()
 
@@ -40,6 +44,9 @@ struct AppStoreCLI {
 
         case .listHelp:
             HelpCommand.showListHelp()
+
+        case .scrapeHelp:
+            HelpCommand.showScrapeHelp()
 
         case .help:
             HelpCommand.showGeneralHelp()
