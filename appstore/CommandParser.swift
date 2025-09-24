@@ -5,12 +5,14 @@ enum Command {
     case lookup(options: LookupOptions)
     case top(options: TopOptions)
     case list(options: ListOptions)
+    case scrape(options: ScrapeOptions)
     case help
     case usage
     case searchHelp
     case lookupHelp
     case topHelp
     case listHelp
+    case scrapeHelp
     case unknown(String)
 }
 
@@ -148,6 +150,9 @@ class CommandParser {
 
         case "list":
             return parseListCommand()
+
+        case "scrape":
+            return parseScrapeCommand()
 
         default:
             return .unknown(command)
@@ -509,5 +514,74 @@ class CommandParser {
             listType: listType
         )
         return .list(options: options)
+    }
+
+    private func parseScrapeCommand() -> Command {
+        guard arguments.count > 2 else {
+            return .scrapeHelp
+        }
+
+        if arguments[2] == "--help" || arguments[2] == "-h" {
+            return .scrapeHelp
+        }
+
+        let args = Array(arguments.dropFirst(2))
+        var searchTerms = args
+        var limit = 10  // Default limit
+        var showJSON = false
+        var showRawJSON = false
+
+        // Extract scrape-specific options first
+        var i = 0
+        while i < searchTerms.count {
+            switch searchTerms[i] {
+            case "--limit":
+                searchTerms.remove(at: i)
+                if i < searchTerms.count, let limitValue = Int(searchTerms[i]) {
+                    limit = limitValue > 0 ? limitValue : 10
+                    searchTerms.remove(at: i)
+                } else {
+                    print("Error: --limit requires a numeric value")
+                    return .scrapeHelp
+                }
+
+            case "--show-json":
+                showJSON = true
+                searchTerms.remove(at: i)
+
+            case "--show-raw-json":
+                showRawJSON = true
+                searchTerms.remove(at: i)
+
+            default:
+                i += 1
+            }
+        }
+
+        // Parse remaining common options
+        let parseResult = CommonOptionsParser.parse(searchTerms)
+
+        if let error = parseResult.error {
+            print("Error: \(error)")
+            print("Use 'appstore scrape --help' to see available options.")
+            return .scrapeHelp
+        }
+
+        // The search term is everything remaining after parsing common options
+        let remainingTerms = parseResult.remainingArgs
+        guard !remainingTerms.isEmpty else {
+            print("Error: Search term is required")
+            return .scrapeHelp
+        }
+
+        let term = remainingTerms.joined(separator: " ")
+        let options = ScrapeOptions(
+            term: term,
+            limit: limit,
+            showJSON: showJSON,
+            showRawJSON: showRawJSON,
+            commonOptions: parseResult.options
+        )
+        return .scrape(options: options)
     }
 }
