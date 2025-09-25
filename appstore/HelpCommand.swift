@@ -14,6 +14,7 @@ class HelpCommand {
             top [chart]       View top charts from the App Store
             list <type>       List available values for various options
             scrape <query>    Search using App Store scraper API (richer data)
+            ranks <app-id>    Analyze keyword rankings for an app
 
         QUICK EXAMPLES:
             appstore search spotify
@@ -32,6 +33,7 @@ class HelpCommand {
             appstore top --help
             appstore list --help
             appstore scrape --help
+            appstore ranks --help
         """)
     }
 
@@ -326,6 +328,48 @@ class HelpCommand {
             - Provides subtitle and copyright information
             - Uses different internal API endpoint
             - May return slightly different result ordering
+        """)
+    }
+
+    static func showRanksHelp() {
+        print("""
+        appstore ranks - Analyze keyword rankings for an app
+
+        USAGE:
+            appstore ranks <app-id> [options]
+
+        DESCRIPTION:
+            Analyzes an app's ranking for automatically generated keywords.
+            This command:
+            1. Fetches the app's details
+            2. Generates relevant keywords from the app's name, subtitle, and description
+            3. Searches for each keyword to find where the app ranks
+            4. Reports competitive analysis for each keyword
+
+        ARGUMENTS:
+            <app-id>               The App Store ID of the app to analyze
+
+        OPTIONS:
+            --limit <num>          Number of keywords to test (default: 20, max: 50)
+            --storefront <code>    Two-letter country code (default: us)
+            --language <code>      Language code for keyword generation (default: en-us)
+            --verbosity <level>    Output detail level (minimal, summary, expanded)
+            --help, -h             Display this help message
+
+        EXAMPLES:
+            appstore ranks 324684580                    # Analyze Spotify
+            appstore ranks 284910350 --limit 30         # Test 30 keywords for Yelp
+            appstore ranks 544007664 --storefront gb    # UK store rankings
+
+        OUTPUT:
+            For each keyword, shows:
+            - The app's rank (if found in top 200)
+            - Top competitor apps for that keyword
+            - Apps with most reviews and highest ratings
+
+        NOTE:
+            This command makes multiple API calls and may take some time to complete.
+            Rate limiting is automatically handled with delays between searches.
         """)
     }
 }

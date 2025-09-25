@@ -6,6 +6,7 @@ enum Command {
     case top(options: TopOptions)
     case list(options: ListOptions)
     case scrape(options: ScrapeOptions)
+    case ranks(options: RanksOptions)
     case help
     case usage
     case searchHelp
@@ -13,6 +14,7 @@ enum Command {
     case topHelp
     case listHelp
     case scrapeHelp
+    case ranksHelp
     case unknown(String)
 }
 
@@ -153,6 +155,9 @@ class CommandParser {
 
         case "scrape":
             return parseScrapeCommand()
+
+        case "ranks":
+            return parseRanksCommand()
 
         default:
             return .unknown(command)
@@ -583,5 +588,57 @@ class CommandParser {
             commonOptions: parseResult.options
         )
         return .scrape(options: options)
+    }
+
+    private func parseRanksCommand() -> Command {
+        guard arguments.count > 2 else {
+            return .ranksHelp
+        }
+
+        if arguments[2] == "--help" || arguments[2] == "-h" {
+            return .ranksHelp
+        }
+
+        // The app ID is the first argument after ranks
+        let appId = arguments[2]
+
+        // Parse remaining options
+        let args = Array(arguments.dropFirst(3))
+        var limit = 20  // Default to 20 keywords
+        var remainingArgs = args
+
+        // Extract ranks-specific options first
+        var i = 0
+        while i < remainingArgs.count {
+            switch remainingArgs[i] {
+            case "--limit":
+                remainingArgs.remove(at: i)
+                if i < remainingArgs.count, let limitValue = Int(remainingArgs[i]) {
+                    limit = limitValue > 0 ? min(limitValue, 50) : 20  // Cap at 50 to avoid rate limits
+                    remainingArgs.remove(at: i)
+                } else {
+                    print("Error: --limit requires a numeric value")
+                    return .ranksHelp
+                }
+            default:
+                i += 1
+            }
+        }
+
+        // Parse common options
+        let parseResult = CommonOptionsParser.parse(remainingArgs)
+
+        if let error = parseResult.error {
+            print("Error: \(error)")
+            print("Use 'appstore ranks --help' to see available options.")
+            return .ranksHelp
+        }
+
+        let options = RanksOptions(
+            appId: appId,
+            limit: limit,
+            commonOptions: parseResult.options
+        )
+        return .ranks(options: options)
     }
 }
