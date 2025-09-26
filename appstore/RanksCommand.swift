@@ -18,10 +18,10 @@ struct RanksCommand {
     // Structure for AI-generated keywords using FoundationModels
     @Generable(description: "Keywords that users might enter as a search string for when looking for an this app or an app with similar functionality")
     struct Keywords {
-        @Guide(description: "Each keyword must be one that a user might enter as a search string when looking for this app or an app with similar functionality")
+        @Guide(description: "Each keyword must be one that a user might enter as a search string when looking for this app or an app with similar functionality. The array should include 12 entries")
         var simpleKeywords: [String]
 
-        @Guide(description: "Keyword phrases. A keyword phrase is 2 or more keywords separated by whitespace")
+        @Guide(description: "Keyword phrases. A keyword phrase is 2 or more keywords separated by whitespace. The array should include 12 entries")
         var keywordPhrases: [String]
     }
 
@@ -352,13 +352,15 @@ struct RanksCommand {
             searchTerms.insert(keyword)
         }
 
-        // Add ALL 2-word combinations from our base keywords
+        // Add ALL 2-word permutations from our base keywords (both orders)
         let allWords = Array(baseKeywords)
         if allWords.count > 1 {
-            for i in 0..<allWords.count-1 {
-                for j in i+1..<allWords.count {
-                    let twoWordCombo = "\(allWords[i]) \(allWords[j])"
-                    searchTerms.insert(twoWordCombo)
+            for i in 0..<allWords.count {
+                for j in 0..<allWords.count {
+                    if i != j {  // Don't pair a word with itself
+                        let twoWordCombo = "\(allWords[i]) \(allWords[j])"
+                        searchTerms.insert(twoWordCombo)
+                    }
                 }
             }
         }
@@ -367,7 +369,7 @@ struct RanksCommand {
             print("\n[DEBUG] Title-based keywords (\(searchTerms.count) total):")
             print("  Full title: \"\(titleLower)\"")
             print("  Individual words: \(baseKeywords.sorted().joined(separator: ", "))")
-            print("  2-word combinations: \(searchTerms.count - baseKeywords.count - 1) generated")
+            print("  2-word permutations: \(searchTerms.count - baseKeywords.count - 1) generated")
         }
 
         // Step 5: Use FoundationModels if available
@@ -424,23 +426,38 @@ struct RanksCommand {
     }
 
     private func isLanguageModelAvailable() async -> Bool {
-        // Check if FoundationModels language models are available and enabled
-        do {
-            let session = LanguageModelSession()
-            // The session will only be created if models are available and enabled
+        
+        let systemLanguageModel = SystemLanguageModel.default
+        
+        // Handle the case where the model is unavailable, e.g., display an alert
+        // You can inspect systemLanguageModel.availability for the reason
+        switch systemLanguageModel.availability {
+        case .available:
+            print("Foundation Model is available.")
             return true
-        } catch {
+        case .unavailable(let reason):
+            print("Foundation Model is NOT available.")
+            switch reason {
+            case .deviceNotEligible:
+                print("Reason: Device is not eligible to run the model.")
+            case .appleIntelligenceNotEnabled:
+                print("Reason: Apple Intelligence is not enabled.")
+            case .modelNotReady:
+                print("Reason: Model not ready.")
+            @unknown default:
+                print("@unknown reason")
+            }
             return false
         }
     }
-
+    
     private func generateAIKeywords(app: App) async -> Keywords? {
         do {
             let session = LanguageModelSession()
 
             // Use exact prompt from playground file with app's actual data
             let prompt = """
-            Below are the title and description of an App on the App Store. Generate two lists of keywords that a user would be likely to type when they were looking for an app like the one described. One list will be simple keywords, where each entry in the array is a single word (not a phrase), and a second list will be keyword phrases (two or more whitespace-separated keywords to be used together as a single search term). Include no more than 12 keywords in each array. Remember to consider synonyms and common misspellings, and remember that every response should be something a person is likely to type on their phone into a search field.
+            Below are the title and description of an App on the App Store. Generate two lists of keywords that a user would be likely to type when they were looking for an app like the one described. One list will be simple keywords, where each entry in the array is a single word (not a phrase), and a second list will be keyword phrases (two or more whitespace-separated keywords to be used together as a single search term). Include 12 keywords in each array. Remember to consider synonyms and common misspellings, and remember that every response should be something a person is likely to type on their phone into a search field.
 
             App title:
             \(app.trackName)

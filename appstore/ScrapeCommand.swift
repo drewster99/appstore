@@ -147,6 +147,8 @@ struct ScrapeCommand {
         var request = URLRequest(url: url)
         request.setValue("\(storeId),24 t:native", forHTTPHeaderField: "X-Apple-Store-Front")
         request.setValue(languageCode, forHTTPHeaderField: "Accept-Language")
+        request.setValue("AppStore/3.0 iOS/18.0 model/iPhone16,2 hwp/t8130 build/22A3354 (6; dt:326) AMS/1", forHTTPHeaderField: "User-Agent")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.cachePolicy = .reloadRevalidatingCacheData
         request.timeoutInterval = 30
 
@@ -158,9 +160,44 @@ struct ScrapeCommand {
             }
         }
 
-        let (data, _) = try await URLSession.shared.data(for: request)
+        // Rate limit before API call
+        await waitForRateLimit()
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        // Check HTTP status
+        if let httpResponse = response as? HTTPURLResponse {
+            if showRequest {
+                print("\nHTTP Status: \(httpResponse.statusCode)")
+            }
+            if httpResponse.statusCode != 200 {
+                // Print all response headers when there's an error
+                print("\nError Response Headers (Status \(httpResponse.statusCode)):")
+                for (key, value) in httpResponse.allHeaderFields {
+                    print("  \(key): \(value)")
+                }
+
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("\nError Response Body:")
+                    print(responseString)
+                }
+            }
+        }
+
+        // Debug: Show raw response if requested
+        if showRequest {
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("\nRaw Response (first 1000 chars):")
+                print(String(responseString.prefix(1000)))
+            }
+        }
 
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            // If parsing fails, show the raw response for debugging
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("Error: Failed to parse JSON. Raw response:")
+                print(responseString)
+            }
             throw AppStoreAPIError.decodingError("Invalid JSON response from MZStore API")
         }
 

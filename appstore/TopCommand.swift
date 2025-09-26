@@ -67,6 +67,9 @@ class TopCommand {
         let startTime = Date()
 
         do {
+            // Rate limit before API call
+            await waitForRateLimit()
+
             let (data, _) = try await session.data(from: url)
 
             let endTime = Date()

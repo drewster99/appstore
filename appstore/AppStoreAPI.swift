@@ -176,6 +176,9 @@ class AppStoreAPI {
         }
 
         do {
+            // Rate limit before API call
+            await waitForRateLimit()
+
             let (data, response) = try await session.data(for: request)
 
             // Show response headers if requested
@@ -274,6 +277,9 @@ class AppStoreAPI {
         }
 
         do {
+            // Rate limit before API call
+            await waitForRateLimit()
+
             let (data, response) = try await session.data(for: request)
 
             // Show response headers if requested
