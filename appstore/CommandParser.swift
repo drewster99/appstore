@@ -604,7 +604,7 @@ class CommandParser {
 
         // Parse remaining options
         let args = Array(arguments.dropFirst(3))
-        var limit = 20  // Default to 20 keywords
+        var limit: Int? = nil  // No default limit - generate all keywords
         var remainingArgs = args
 
         // Extract ranks-specific options first
@@ -614,7 +614,7 @@ class CommandParser {
             case "--limit":
                 remainingArgs.remove(at: i)
                 if i < remainingArgs.count, let limitValue = Int(remainingArgs[i]) {
-                    limit = limitValue > 0 ? min(limitValue, 50) : 20  // Cap at 50 to avoid rate limits
+                    limit = limitValue > 0 ? limitValue : nil  // No cap, use what user specifies
                     remainingArgs.remove(at: i)
                 } else {
                     print("Error: --limit requires a numeric value")
