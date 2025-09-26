@@ -74,7 +74,7 @@ class TextFormatter: OutputFormatter {
         var output = ""
 
         // Add header for table format
-        output += "#  App ID      Bundle ID                          Version    Price    Rating  Reviews  Name\n"
+        output += "#   App ID      Bundle ID                          Version    Price    Rating  Reviews  Name\n"
         output += String(repeating: "-", count: 80) + "\n"
 
         for (index, app) in apps.enumerated() {
@@ -82,8 +82,8 @@ class TextFormatter: OutputFormatter {
             let ratingCount = app.userRatingCount.map { String($0) } ?? "0"
             let price = app.formattedPrice ?? "Free"
 
-            // Format with fixed widths for better alignment
-            let numStr = String(index + 1).padding(toLength: 2, withPad: " ", startingAt: 0)
+            // Format with fixed widths for better alignment (3 digits for rank to support up to 999)
+            let numStr = String(index + 1).padding(toLength: 3, withPad: " ", startingAt: 0)
             let idStr = String(app.trackId).padding(toLength: 11, withPad: " ", startingAt: 0)
             let bundleStr = app.bundleId.padding(toLength: 35, withPad: " ", startingAt: 0)
             let versionStr = app.version.padding(toLength: 10, withPad: " ", startingAt: 0)

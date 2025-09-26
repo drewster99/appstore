@@ -12,7 +12,7 @@ struct ScrapeOptions {
     let showRequest: Bool
     let commonOptions: CommonOptions
 
-    init(term: String, limit: Int = 10, showJSON: Bool = false, showRawJSON: Bool = false, commonOptions: CommonOptions) {
+    init(term: String, limit: Int = 200, showJSON: Bool = false, showRawJSON: Bool = false, commonOptions: CommonOptions) {
         self.term = term
         self.storefront = commonOptions.storefront ?? "US"
         self.limit = limit
@@ -28,7 +28,11 @@ struct ScrapeOptions {
 
 struct ScrapeCommand {
     private let api = AppStoreAPI()
-    private let storeIds: [String: String] = [
+
+    // IMPORTANT: This mapping is used to convert storefront codes to store IDs
+    // for the MZStore API which returns apps in the SAME ranked order as the App Store app.
+    // See CLAUDE.md for architecture details.
+    static let storeIds: [String: String] = [
         "DZ": "143563", "AO": "143564", "AI": "143538", "AR": "143505",
         "AM": "143524", "AU": "143460", "AT": "143445", "AZ": "143568",
         "BH": "143559", "BB": "143541", "BY": "143565", "BE": "143446",
@@ -61,62 +65,30 @@ struct ScrapeCommand {
     ]
 
     func execute(options: ScrapeOptions) async {
-        let storeId = storeIds[options.storefront.uppercased()] ?? "143441"
-        let languageCode = options.language.isEmpty ? "en-us" : options.language.lowercased()
-
-        let urlString = "https://search.itunes.apple.com/WebObjects/MZStore.woa/wa/search?clientApplication=Software&media=software&term=\(options.term.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
-
-        guard let url = URL(string: urlString) else {
-            print("Error: Invalid URL")
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.setValue("\(storeId),24 t:native", forHTTPHeaderField: "X-Apple-Store-Front")
-        request.setValue(languageCode, forHTTPHeaderField: "Accept-Language")
-        request.cachePolicy = .reloadRevalidatingCacheData
-        request.timeoutInterval = 30
-
-        if options.showRequest {
-            print("Request URL: \(url)")
-            print("Request Headers:")
-            for (key, value) in request.allHTTPHeaderFields ?? [:] {
-                print("  \(key): \(value)")
-            }
-        }
+        // IMPORTANT: This command uses the MZStore API to get apps in RANKED ORDER,
+        // then enriches them with the iTunes Lookup API for full details.
+        // This ensures the ranking matches what users see in the App Store app.
+        // See CLAUDE.md for architecture details.
 
         do {
             let startTime = Date()
-            let (data, response) = try await URLSession.shared.data(for: request)
 
-            if options.showRequest, let httpResponse = response as? HTTPURLResponse {
-                print("\nResponse Headers:")
-                for (key, value) in httpResponse.allHeaderFields {
-                    print("  \(key): \(value)")
-                }
-            }
-
-            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                print("Error: Invalid JSON response")
-                return
-            }
-
-            // For raw JSON output, just output the scrape response as-is
-            if options.showRawJSON {
-                let outputManager = OutputManager(options: options.commonOptions)
-                outputManager.outputRawJSON(data)
-                return
-            }
-
-            // Extract app IDs from bubbles
-            let appIds = extractAppIds(from: json, limit: options.limit)
+            // Step 1: Get ranked app IDs from MZStore API
+            let appIds = try await Self.fetchRankedAppIds(
+                term: options.term,
+                storefront: options.storefront,
+                language: options.language,
+                limit: options.limit,
+                showRequest: options.showRequest
+            )
 
             if appIds.isEmpty {
                 print("No results found")
                 return
             }
 
-            // Use the API to lookup full details for all app IDs
+            // Step 2: Enrich with full details from iTunes Lookup API
+            // This ensures consistent data format across all commands
             let lookupResult = try await api.lookupWithRawData(
                 lookupType: .ids(appIds),
                 storefront: options.storefront,
@@ -152,9 +124,54 @@ struct ScrapeCommand {
         if let bubbles = json["bubbles"] as? [[String: Any]],
            let firstBubble = bubbles.first,
            let results = firstBubble["results"] as? [[String: Any]] {
-            // Extract IDs from bubbles, limiting to requested amount
-            return results.prefix(limit).compactMap { $0["id"] as? String }
+            // Extract IDs from bubbles (all results)
+            return results.compactMap { $0["id"] as? String }
         }
+        return []
+    }
+
+    // IMPORTANT: This method uses the MZStore API which returns apps in RANKED ORDER.
+    // The position in the returned array IS the app's rank for the search term.
+    // This is the same ranking shown in the App Store app.
+    // The iTunes Search API (/search) has DIFFERENT rankings and should NOT be used for ranking.
+    static func fetchRankedAppIds(term: String, storefront: String, language: String, limit: Int, showRequest: Bool = false) async throws -> [String] {
+        let storeId = storeIds[storefront.uppercased()] ?? "143441"
+        let languageCode = language.isEmpty ? "en-us" : language.lowercased()
+
+        let urlString = "https://search.itunes.apple.com/WebObjects/MZStore.woa/wa/search?clientApplication=Software&media=software&term=\(term.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
+
+        guard let url = URL(string: urlString) else {
+            throw AppStoreAPIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue("\(storeId),24 t:native", forHTTPHeaderField: "X-Apple-Store-Front")
+        request.setValue(languageCode, forHTTPHeaderField: "Accept-Language")
+        request.cachePolicy = .reloadRevalidatingCacheData
+        request.timeoutInterval = 30
+
+        if showRequest {
+            print("Request URL: \(url.absoluteString)")
+            print("Request Headers:")
+            for (key, value) in request.allHTTPHeaderFields ?? [:] {
+                print("  \(key): \(value)")
+            }
+        }
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw AppStoreAPIError.decodingError("Invalid JSON response from MZStore API")
+        }
+
+        // Extract app IDs from bubbles in ranked order
+        if let bubbles = json["bubbles"] as? [[String: Any]],
+           let firstBubble = bubbles.first,
+           let results = firstBubble["results"] as? [[String: Any]] {
+            // Return IDs in ranked order (all results)
+            return results.compactMap { $0["id"] as? String }
+        }
+
         return []
     }
 }

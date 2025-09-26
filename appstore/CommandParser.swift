@@ -532,7 +532,7 @@ class CommandParser {
 
         let args = Array(arguments.dropFirst(2))
         var searchTerms = args
-        var limit = 10  // Default limit
+        var limit = 200  // Default limit (matches search command)
         var showJSON = false
         var showRawJSON = false
 
@@ -543,7 +543,7 @@ class CommandParser {
             case "--limit":
                 searchTerms.remove(at: i)
                 if i < searchTerms.count, let limitValue = Int(searchTerms[i]) {
-                    limit = limitValue > 0 ? limitValue : 10
+                    limit = limitValue > 0 ? limitValue : 200
                     searchTerms.remove(at: i)
                 } else {
                     print("Error: --limit requires a numeric value")

@@ -117,7 +117,7 @@ struct SearchOptions {
     let attribute: String?
     let genre: Int?
 
-    static let defaultLimit = 20
+    static let defaultLimit = 200
     static let maxLimit = 200
     static let minLimit = 0  // 0 means unlimited
 

@@ -73,6 +73,23 @@ enum AppStoreAPIError: Error, LocalizedError {
 class AppStoreAPI {
     private let searchURL = "https://itunes.apple.com/search"
     private let lookupURL = "https://itunes.apple.com/lookup"
+
+    // IMPORTANT: Static method for shared lookup functionality.
+    // This ensures all commands that need app details use the same lookup logic.
+    // Always use this after getting ranked app IDs from the MZStore API.
+    // See CLAUDE.md for architecture details.
+    static func lookupAppDetails(appIds: [String], storefront: String?, language: String) async throws -> [App] {
+        let api = AppStoreAPI()
+        let result = try await api.lookupWithRawData(
+            lookupType: .ids(appIds),
+            storefront: storefront,
+            entity: nil,
+            language: language,
+            showRequest: false,
+            showResponseHeaders: false
+        )
+        return result.apps
+    }
     private let session: URLSession
 
     init(session: URLSession = .shared) {
@@ -101,19 +118,20 @@ class AppStoreAPI {
         }
     }
 
-    func search(query: String, limit: Int = 20, storefront: String? = nil, attribute: String? = nil, genre: Int? = nil, language: String? = nil) async throws -> [App] {
+    func search(query: String, limit: Int = 200, storefront: String? = nil, attribute: String? = nil, genre: Int? = nil, language: String? = nil) async throws -> [App] {
         let result = try await searchWithRawData(query: query, limit: limit, storefront: storefront, attribute: attribute, genre: genre, language: language)
         return result.apps
     }
 
-    func searchWithRawData(query: String, limit: Int = 20, storefront: String? = nil, attribute: String? = nil, genre: Int? = nil, language: String? = nil, showRequest: Bool = false, showResponseHeaders: Bool = false) async throws -> (apps: [App], rawData: Data) {
+    func searchWithRawData(query: String, limit: Int = 200, storefront: String? = nil, attribute: String? = nil, genre: Int? = nil, language: String? = nil, showRequest: Bool = false, showResponseHeaders: Bool = false) async throws -> (apps: [App], rawData: Data) {
         guard var urlComponents = URLComponents(string: searchURL) else {
             throw AppStoreAPIError.invalidURL
         }
 
         var queryItems = [
             URLQueryItem(name: "term", value: query),
-            URLQueryItem(name: "entity", value: "software")
+            URLQueryItem(name: "media", value: "software"),  // Broad category for apps
+            URLQueryItem(name: "entity", value: "software")  // Specifically iPhone/iOS apps
         ]
 
         // Only add limit if it's not 0 (0 means no limit)
