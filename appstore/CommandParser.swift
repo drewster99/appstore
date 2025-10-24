@@ -7,6 +7,7 @@ enum Command {
     case list(options: ListOptions)
     case scrape(options: ScrapeOptions)
     case ranks(options: RanksOptions)
+    case analyze(options: AnalyzeOptions)
     case help
     case usage
     case searchHelp
@@ -15,6 +16,7 @@ enum Command {
     case listHelp
     case scrapeHelp
     case ranksHelp
+    case analyzeHelp
     case unknown(String)
 }
 
@@ -158,6 +160,9 @@ class CommandParser {
 
         case "ranks":
             return parseRanksCommand()
+
+        case "analyze":
+            return parseAnalyzeCommand()
 
         default:
             return .unknown(command)
@@ -640,5 +645,40 @@ class CommandParser {
             commonOptions: parseResult.options
         )
         return .ranks(options: options)
+    }
+
+    private func parseAnalyzeCommand() -> Command {
+        guard arguments.count > 2 else {
+            return .analyzeHelp
+        }
+
+        if arguments[2] == "--help" || arguments[2] == "-h" {
+            return .analyzeHelp
+        }
+
+        let args = Array(arguments.dropFirst(2))
+
+        // Parse common options
+        let parseResult = CommonOptionsParser.parse(args)
+
+        if let error = parseResult.error {
+            print("Error: \(error)")
+            print("Use 'appstore analyze --help' to see available options.")
+            return .analyzeHelp
+        }
+
+        // The search term is everything remaining after parsing common options
+        let remainingTerms = parseResult.remainingArgs
+        guard !remainingTerms.isEmpty else {
+            print("Error: Search term is required")
+            return .analyzeHelp
+        }
+
+        let term = remainingTerms.joined(separator: " ")
+        let options = AnalyzeOptions(
+            term: term,
+            commonOptions: parseResult.options
+        )
+        return .analyze(options: options)
     }
 }

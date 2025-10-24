@@ -37,6 +37,10 @@ struct AppStoreCLI {
             let ranksCommand = RanksCommand()
             await ranksCommand.execute(options: options)
 
+        case .analyze(let options):
+            let analyzeCommand = AnalyzeCommand()
+            await analyzeCommand.execute(options: options)
+
         case .searchHelp:
             HelpCommand.showSearchHelp()
 
@@ -54,6 +58,9 @@ struct AppStoreCLI {
 
         case .ranksHelp:
             HelpCommand.showRanksHelp()
+
+        case .analyzeHelp:
+            HelpCommand.showAnalyzeHelp()
 
         case .help:
             HelpCommand.showGeneralHelp()

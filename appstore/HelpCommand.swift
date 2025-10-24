@@ -15,6 +15,7 @@ class HelpCommand {
             list <type>       List available values for various options
             scrape <query>    Search using App Store scraper API (richer data)
             ranks <app-id>    Analyze keyword rankings for an app
+            analyze <query>   Analyze top 20 search results with keyword matching
 
         QUICK EXAMPLES:
             appstore search spotify
@@ -34,6 +35,7 @@ class HelpCommand {
             appstore list --help
             appstore scrape --help
             appstore ranks --help
+            appstore analyze --help
         """)
     }
 
@@ -370,6 +372,66 @@ class HelpCommand {
         NOTE:
             This command makes multiple API calls and may take some time to complete.
             Rate limiting is automatically handled with delays between searches.
+        """)
+    }
+
+    static func showAnalyzeHelp() {
+        print("""
+        appstore analyze - Analyze top 20 search results with keyword matching
+
+        USAGE:
+            appstore analyze [options] <query>
+
+        DESCRIPTION:
+            Performs a search and analyzes the top 20 results with detailed keyword
+            matching and statistics. Outputs results in CSV format with comprehensive
+            metrics including:
+            - Match scores for search terms in title and description
+            - App age and freshness metrics
+            - Ratings velocity (ratings per day)
+            - Comparative statistics for newest vs established apps
+
+        OPTIONS:
+            --help, -h              Display this help message
+            --show-request         Display the API request details
+            --storefront <code>    Two-letter country code (default: US)
+            --language <code>      Language code (default: en-us)
+
+        KEYWORD MATCHING:
+            The analyze command uses smart keyword matching:
+            - Generates word variants (plurals, -ing, -ed forms)
+            - Checks for exact phrase matches (counts as 5 points)
+            - Removes filter words (a, an, the, and, or, for, with, etc.)
+            - Counts individual word matches in title and description
+
+        CSV OUTPUT COLUMNS:
+            App ID                 - App Store track ID
+            Rating                 - Average user rating (out of 5)
+            Rating Count           - Total number of ratings
+            Original Release       - First release date (YYYY-MM-DD)
+            Latest Release         - Most recent update date (YYYY-MM-DD)
+            Age Days               - Days since original release
+            Freshness Days         - Days since latest update
+            Title Match Score      - Keyword match score in title (5 = exact match)
+            Description Match Score - Keyword match score in description
+            Ratings Per Day        - Rating velocity (ratings ÷ age in days)
+            Title                  - App name
+
+        SUMMARY STATISTICS:
+            After the CSV data, displays:
+            - Overall metrics for all 20 apps
+            - Comparison of newest 30% (6 apps) vs established apps
+            - Rating velocity ratios
+
+        EXAMPLES:
+            appstore analyze "cat toy"
+            appstore analyze --storefront GB "photo editor"
+            appstore analyze "music player" > results.csv
+
+        NOTE:
+            - Always returns exactly 20 results (no limit configuration)
+            - Shows debug output with word variants being matched
+            - Uses MZStore API for accurate App Store rankings
         """)
     }
 }
