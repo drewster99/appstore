@@ -486,6 +486,14 @@ def generate_html_dashboard(data: Dict[str, Any], output_path: Path):
             letter-spacing: 0.5px;
         }
 
+        .app-list-header > div {
+            text-align: center;
+        }
+
+        .app-list-header > div:nth-child(3) {
+            text-align: left;
+        }
+
         .app-item {
             display: grid;
             grid-template-columns: 40px 100px 2fr 80px 90px 80px 80px 100px 120px 150px 80px 100px;
