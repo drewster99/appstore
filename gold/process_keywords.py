@@ -2,17 +2,23 @@
 """
 Process Apple Search Ads Monthly Keyword Rankings and score them.
 Outputs JSON with scored keywords ready for HTML generation.
+
+Now reads from database by default. Use --from-excel to read from Excel file.
 """
 
 import sys
 import json
 from pathlib import Path
 
+# Add current directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+
+from db.database import execute_one, execute_query
+
 try:
     import openpyxl
 except ImportError:
-    print("Error: openpyxl not installed. Install with: pip3 install openpyxl", file=sys.stderr)
-    sys.exit(1)
+    openpyxl = None
 
 
 def score_rank_in_genre(rank):
@@ -48,6 +54,77 @@ def score_overall_popularity(popularity):
     elif 50 <= popularity <= 60:
         return 2
     return 0
+
+
+def process_from_database(country_filter="United States", report_id=None):
+    """
+    Read keywords from database and return scored keywords.
+
+    Args:
+        country_filter: Filter for this country
+        report_id: Specific report ID to use, or None for most recent active report
+
+    Returns:
+        List of keyword dictionaries
+    """
+    # Get the report
+    if report_id:
+        report = execute_one(
+            "SELECT * FROM apple_reports WHERE id = ?",
+            (report_id,)
+        )
+        if not report:
+            raise ValueError(f"Report ID {report_id} not found")
+    else:
+        # Get most recent active report for this country
+        # Note: We filter by checking if any keywords exist for this country in the report
+        report = execute_one(
+            """SELECT DISTINCT ar.*
+               FROM apple_reports ar
+               JOIN apple_keywords ak ON ar.id = ak.report_id
+               WHERE ar.is_active = 1 AND ak.country = ?
+               ORDER BY ar.generated_at DESC
+               LIMIT 1""",
+            (country_filter,)
+        )
+
+        if not report:
+            raise ValueError(
+                f"No active reports found for country: {country_filter}. "
+                f"Import a report with: python3 commands/import_report.py <excel_file>"
+            )
+
+    report_id = report['id']
+    data_month = report['data_month']
+    user_locale = report['user_locale']
+
+    print(f"Reading from database...", file=sys.stderr)
+    print(f"  Report ID: {report_id} ({report['report_id']})", file=sys.stderr)
+    print(f"  Data Month: {data_month}", file=sys.stderr)
+    print(f"  Locale: {user_locale}", file=sys.stderr)
+    print(f"  Country filter: {country_filter}", file=sys.stderr)
+
+    # Query keywords for this report and country
+    rows = execute_query(
+        """SELECT month.value as month, country, genre, search_term,
+                  rank_in_genre, popularity_genre, popularity_overall,
+                  score_rank, score_genre, score_overall, total_score
+           FROM apple_keywords ak
+           JOIN (SELECT ? as value) month
+           WHERE ak.report_id = ? AND ak.country = ?
+           ORDER BY ak.total_score DESC""",
+        (data_month, report_id, country_filter)
+    )
+
+    if not rows:
+        print(f"Warning: No keywords found for {country_filter}", file=sys.stderr)
+        return []
+
+    keywords = [dict(row) for row in rows]
+
+    print(f"Retrieved {len(keywords)} keywords", file=sys.stderr)
+
+    return keywords
 
 
 def process_excel(excel_path, country_filter="United States"):
@@ -154,33 +231,65 @@ def process_excel(excel_path, country_filter="United States"):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python3 process_keywords.py <excel_file> [country]", file=sys.stderr)
-        print("Example: python3 process_keywords.py keywords.xlsx 'United States'", file=sys.stderr)
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Process Apple Search Ads keyword rankings",
+        epilog="By default, reads from database. Use --from-excel to read from Excel file."
+    )
+    parser.add_argument(
+        "--country",
+        default="United States",
+        help="Country to filter for (default: United States)"
+    )
+    parser.add_argument(
+        "--report-id",
+        type=int,
+        help="Specific report ID to use (default: most recent active report)"
+    )
+    parser.add_argument(
+        "--from-excel",
+        metavar="EXCEL_FILE",
+        help="Read from Excel file instead of database (legacy mode)"
+    )
+
+    args = parser.parse_args()
+
+    try:
+        if args.from_excel:
+            # Legacy mode: read from Excel
+            if openpyxl is None:
+                print("Error: openpyxl not installed. Install with: pip3 install openpyxl", file=sys.stderr)
+                sys.exit(1)
+
+            excel_path = Path(args.from_excel)
+            if not excel_path.exists():
+                print(f"Error: File not found: {excel_path}", file=sys.stderr)
+                sys.exit(1)
+
+            print(f"Processing {excel_path}...", file=sys.stderr)
+            print(f"Filtering for country: {args.country}", file=sys.stderr)
+
+            keywords = process_excel(excel_path, args.country)
+        else:
+            # Default mode: read from database
+            keywords = process_from_database(
+                country_filter=args.country,
+                report_id=args.report_id
+            )
+
+        # Output JSON to stdout
+        output = {
+            "country": args.country,
+            "total_keywords": len(keywords),
+            "keywords": keywords
+        }
+
+        print(json.dumps(output, indent=2))
+
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
-
-    excel_path = sys.argv[1]
-    country_filter = sys.argv[2] if len(sys.argv) > 2 else "United States"
-
-    if not Path(excel_path).exists():
-        print(f"Error: File not found: {excel_path}", file=sys.stderr)
-        sys.exit(1)
-
-    print(f"Processing {excel_path}...", file=sys.stderr)
-    print(f"Filtering for country: {country_filter}", file=sys.stderr)
-
-    keywords = process_excel(excel_path, country_filter)
-
-    print(f"Processed {len(keywords)} keywords", file=sys.stderr)
-
-    # Output JSON to stdout
-    output = {
-        "country": country_filter,
-        "total_keywords": len(keywords),
-        "keywords": keywords
-    }
-
-    print(json.dumps(output, indent=2))
 
 
 if __name__ == "__main__":

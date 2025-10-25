@@ -2,6 +2,7 @@
 
 # Master script to find keyword gold nuggets
 # This orchestrates the entire workflow from Excel file to analysis
+# Now uses database-first approach
 
 set -e
 
@@ -32,28 +33,40 @@ fi
 echo "Found Excel file: $EXCEL_FILE"
 echo ""
 
-# Step 1: Process keywords and score them
-echo "Step 1/3: Processing and scoring keywords..."
-echo "This may take 1-2 minutes for ~300k rows..."
-echo ""
+# Get country from command line or use default
+COUNTRY="${1:-United States}"
 
-if [ ! -f "keywords_scored.json" ]; then
-    python3 process_keywords.py "$EXCEL_FILE" "United States" > keywords_scored.json
-    echo "✓ Processed keywords saved to: keywords_scored.json"
+# Step 1: Check if Excel file is already imported
+echo "Step 1/4: Checking database..."
+# Extract just the filename without path
+EXCEL_FILENAME=$(basename "$EXCEL_FILE")
+
+# Check if this file is already in the database
+ALREADY_IMPORTED=$(sqlite3 ~/.appstore/analytics.db \
+    "SELECT COUNT(*) FROM apple_reports WHERE source_filename = '$EXCEL_FILENAME'" 2>/dev/null || echo "0")
+
+if [ "$ALREADY_IMPORTED" -eq "0" ]; then
+    echo "  Importing Excel file into database..."
+    python3 commands/import_report.py "$EXCEL_FILE" --country "$COUNTRY"
+    echo ""
 else
-    echo "✓ Using existing keywords_scored.json"
+    echo "  ✓ Excel file already imported"
+    echo ""
 fi
 
+# Step 2: Generate scored keywords JSON (from database)
+echo "Step 2/4: Generating scored keywords from database..."
+python3 process_keywords.py --country "$COUNTRY" > keywords_scored.json
+echo "  ✓ Saved to: keywords_scored.json"
 echo ""
 
-# Step 2: Generate HTML report
-echo "Step 2/3: Generating interactive HTML report..."
-python3 generate_html.py keywords_scored.json keyword_report.html "$EXCEL_FILE"
-echo "✓ HTML report generated: keyword_report.html"
+# Step 3: Generate HTML report (from database)
+echo "Step 3/4: Generating interactive HTML report..."
+python3 generate_html.py --country "$COUNTRY" --output keyword_report.html
 echo ""
 
-# Step 3: Open in browser
-echo "Step 3/3: Opening report in browser..."
+# Step 4: Open in browser
+echo "Step 4/4: Opening report in browser..."
 open keyword_report.html 2>/dev/null || echo "Please open keyword_report.html in your browser"
 
 echo ""
@@ -67,6 +80,6 @@ echo "2. Select keywords you want to analyze"
 echo "3. Click 'Export Selected' to download selected_keywords.json"
 echo "4. Run: ./analyze_selected.sh selected_keywords.json"
 echo ""
-echo "The analyze script will run 'appstore analyze' for each"
-echo "selected keyword and save the results as CSV files."
+echo "The analyze script will create a batch and run 'appstore analyze'"
+echo "for each selected keyword, tracking progress in the database."
 echo "========================================"

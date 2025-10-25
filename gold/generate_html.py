@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 """
-Generate an interactive HTML report from scored keywords JSON.
+Generate an interactive HTML report from scored keywords.
+
+Now reads from database by default. Use --from-json to read from JSON file.
 """
 
 import json
 import sys
 from pathlib import Path
 from datetime import datetime
+
+# Add current directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+
+from db.database import execute_one, execute_query
 
 
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -550,6 +557,84 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 """
 
 
+def load_keywords_from_database(country_filter="United States", report_id=None):
+    """
+    Load keywords from database.
+
+    Args:
+        country_filter: Filter for this country
+        report_id: Specific report ID to use, or None for most recent active report
+
+    Returns:
+        Dictionary with country, total_keywords, and keywords list
+    """
+    # Get the report
+    if report_id:
+        report = execute_one(
+            "SELECT * FROM apple_reports WHERE id = ?",
+            (report_id,)
+        )
+        if not report:
+            raise ValueError(f"Report ID {report_id} not found")
+    else:
+        # Get most recent active report for this country
+        report = execute_one(
+            """SELECT DISTINCT ar.*
+               FROM apple_reports ar
+               JOIN apple_keywords ak ON ar.id = ak.report_id
+               WHERE ar.is_active = 1 AND ak.country = ?
+               ORDER BY ar.generated_at DESC
+               LIMIT 1""",
+            (country_filter,)
+        )
+
+        if not report:
+            raise ValueError(
+                f"No active reports found for country: {country_filter}. "
+                f"Import a report with: python3 commands/import_report.py <excel_file>"
+            )
+
+    report_id = report['id']
+    data_month = report['data_month']
+    user_locale = report['user_locale']
+
+    print(f"Generating HTML from database...", file=sys.stderr)
+    print(f"  Report ID: {report_id} ({report['report_id']})", file=sys.stderr)
+    print(f"  Data Month: {data_month}", file=sys.stderr)
+    print(f"  Locale: {user_locale}", file=sys.stderr)
+    print(f"  Country filter: {country_filter}", file=sys.stderr)
+
+    # Query keywords for this report and country
+    rows = execute_query(
+        """SELECT month.value as month, country, genre, search_term,
+                  rank_in_genre, popularity_genre, popularity_overall,
+                  score_rank, score_genre, score_overall, total_score
+           FROM apple_keywords ak
+           JOIN (SELECT ? as value) month
+           WHERE ak.report_id = ? AND ak.country = ?
+           ORDER BY ak.total_score DESC""",
+        (data_month, report_id, country_filter)
+    )
+
+    if not rows:
+        print(f"Warning: No keywords found for {country_filter}", file=sys.stderr)
+        return {
+            "country": country_filter,
+            "total_keywords": 0,
+            "keywords": []
+        }
+
+    keywords = [dict(row) for row in rows]
+
+    print(f"Retrieved {len(keywords)} keywords", file=sys.stderr)
+
+    return {
+        "country": country_filter,
+        "total_keywords": len(keywords),
+        "keywords": keywords
+    }
+
+
 def generate_html(keywords_data, output_path, source_filename=None):
     """Generate HTML report from keywords data."""
 
@@ -607,23 +692,68 @@ def generate_html(keywords_data, output_path, source_filename=None):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python3 generate_html.py <keywords_json> [output_html] [source_filename]", file=sys.stderr)
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Generate interactive HTML report from Apple Search Ads keyword rankings",
+        epilog="By default, reads from database. Use --from-json to read from JSON file."
+    )
+    parser.add_argument(
+        "--country",
+        default="United States",
+        help="Country to filter for (default: United States)"
+    )
+    parser.add_argument(
+        "--report-id",
+        type=int,
+        help="Specific report ID to use (default: most recent active report)"
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        default="keyword_report.html",
+        help="Output HTML file path (default: keyword_report.html)"
+    )
+    parser.add_argument(
+        "--from-json",
+        metavar="JSON_FILE",
+        help="Read from JSON file instead of database (legacy mode)"
+    )
+    parser.add_argument(
+        "--source-filename",
+        help="Source filename to display in report (for JSON mode)"
+    )
+
+    args = parser.parse_args()
+
+    try:
+        if args.from_json:
+            # Legacy mode: read from JSON
+            json_path = Path(args.from_json)
+            if not json_path.exists():
+                print(f"Error: File not found: {json_path}", file=sys.stderr)
+                sys.exit(1)
+
+            print(f"Loading keywords from {json_path}...", file=sys.stderr)
+            with open(json_path) as f:
+                keywords_data = json.load(f)
+
+            source_filename = args.source_filename
+        else:
+            # Default mode: read from database
+            keywords_data = load_keywords_from_database(
+                country_filter=args.country,
+                report_id=args.report_id
+            )
+            source_filename = None
+
+        generate_html(keywords_data, args.output, source_filename)
+        print(f"\n✓ Generated HTML report: {args.output}", file=sys.stderr)
+        print(f"Open {args.output} in your browser to view the report", file=sys.stderr)
+
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
-
-    json_path = sys.argv[1]
-    output_path = sys.argv[2] if len(sys.argv) > 2 else "keyword_report.html"
-    source_filename = sys.argv[3] if len(sys.argv) > 3 else None
-
-    if not Path(json_path).exists():
-        print(f"Error: File not found: {json_path}", file=sys.stderr)
-        sys.exit(1)
-
-    with open(json_path) as f:
-        keywords_data = json.load(f)
-
-    generate_html(keywords_data, output_path, source_filename)
-    print(f"\nOpen {output_path} in your browser to view the report")
 
 
 if __name__ == "__main__":
