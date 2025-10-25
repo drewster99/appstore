@@ -245,7 +245,7 @@ struct AnalyzeCommand {
 
     private func outputCSV(analyzedApps: [AnalyzedApp], summary: SearchSummary, durationMs: Int) {
         // Header row
-        print("App ID,Rating,Rating Count,Original Release,Latest Release,Age Days,Freshness Days,Title Match Score,Description Match Score,Ratings Per Day,Title")
+        print("App ID,Rating,Rating Count,Original Release,Latest Release,Age Days,Freshness Days,Title Match Score,Description Match Score,Ratings Per Day,Title,Genre,Version,Age Rating")
 
         // Data rows
         for analyzed in analyzedApps {
@@ -261,8 +261,11 @@ struct AnalyzeCommand {
             let descScore = analyzed.descriptionMatchScore
             let ratingsPerDay = String(format: "%.2f", analyzed.ratingsPerDay)
             let title = escapedCSV(app.trackName)
+            let genre = escapedCSV(analyzed.genreName)
+            let version = escapedCSV(app.version)
+            let ageRating = escapedCSV(app.contentAdvisoryRating ?? "N/A")
 
-            print("\(appId),\(rating),\(ratingCount),\(originalRelease),\(latestRelease),\(ageDays),\(freshnessDays),\(titleScore),\(descScore),\(ratingsPerDay),\(title)")
+            print("\(appId),\(rating),\(ratingCount),\(originalRelease),\(latestRelease),\(ageDays),\(freshnessDays),\(titleScore),\(descScore),\(ratingsPerDay),\(title),\(genre),\(version),\(ageRating)")
         }
 
         // Blank line
@@ -272,6 +275,8 @@ struct AnalyzeCommand {
         let totalApps = analyzedApps.count
         print("Overall Summary (All \(totalApps) Apps):")
         print("  Average App Age: \(summary.avgAgeDays) days")
+        print("  Median App Age: \(summary.medianAgeDays) days")
+        print("  Age Ratio (Old/New): \(String(format: "%.2f", summary.ageRatio))")
         print("  Average App Freshness: \(summary.avgFreshnessDays) days")
         print("  Average Star Rating: \(String(format: "%.2f", summary.avgRating))")
         print("  Average Rating Count: \(summary.avgRatingCount)")
@@ -299,7 +304,7 @@ struct AnalyzeCommand {
         let totalApps = analyzedApps.count
         guard totalApps > 0 else {
             return SearchSummary(
-                avgAgeDays: 0, avgFreshnessDays: 0, avgRating: 0, avgRatingCount: 0,
+                avgAgeDays: 0, medianAgeDays: 0, ageRatio: 1.0, avgFreshnessDays: 0, avgRating: 0, avgRatingCount: 0,
                 avgTitleMatchScore: 0, avgDescriptionMatchScore: 0, avgRatingsPerDay: 0,
                 newestVelocity: 0, establishedVelocity: 0, velocityRatio: 0, competitivenessV1: 0,
                 totalTitleScore: 0, totalDescScore: 0, totalRatingsPerDay: 0,
@@ -320,11 +325,27 @@ struct AnalyzeCommand {
         let totalRatingsPerDay = analyzedApps.map { $0.ratingsPerDay }.reduce(0, +)
         let avgRatingsPerDay = totalRatingsPerDay / Double(totalApps)
 
-        // Newest 30% vs Established
+        // Calculate median age
+        let sortedAges = analyzedApps.map { $0.ageDays }.sorted()
+        let medianAge: Int
+        if sortedAges.count % 2 == 0 {
+            // Even number of elements - average of middle two
+            medianAge = (sortedAges[sortedAges.count / 2 - 1] + sortedAges[sortedAges.count / 2]) / 2
+        } else {
+            // Odd number of elements - middle element
+            medianAge = sortedAges[sortedAges.count / 2]
+        }
+
+        // Newest 30% vs Established (Oldest 70%)
         let sortedByAge = analyzedApps.sorted { $0.ageDays < $1.ageDays }
         let newCount = Int(ceil(Double(totalApps) * 0.3))
         let newestApps = Array(sortedByAge.prefix(newCount))
         let establishedApps = Array(sortedByAge.dropFirst(newCount))
+
+        // Calculate age ratio (old/new) - avoid division by zero
+        let newestAvgAge = newestApps.count > 0 ? newestApps.map { $0.ageDays }.reduce(0, +) / newestApps.count : 1
+        let establishedAvgAge = establishedApps.count > 0 ? establishedApps.map { $0.ageDays }.reduce(0, +) / establishedApps.count : 1
+        let ageRatio = Double(establishedAvgAge) / Double(max(1, newestAvgAge))
 
         let totalRatings = analyzedApps.map { $0.app.userRatingCount ?? 0 }.reduce(0, +)
         let newestRatings = newestApps.map { $0.app.userRatingCount ?? 0 }.reduce(0, +)
@@ -348,6 +369,8 @@ struct AnalyzeCommand {
 
         return SearchSummary(
             avgAgeDays: avgAge,
+            medianAgeDays: medianAge,
+            ageRatio: ageRatio,
             avgFreshnessDays: avgFreshness,
             avgRating: avgRating,
             avgRatingCount: avgRatingCount,
@@ -437,7 +460,9 @@ struct AnalyzeCommand {
                 titleMatchScore: analyzed.titleMatchScore,
                 descriptionMatchScore: analyzed.descriptionMatchScore,
                 ratingsPerDay: analyzed.ratingsPerDay,
-                genreName: analyzed.genreName
+                genreName: analyzed.genreName,
+                version: analyzed.app.version,
+                ageRating: analyzed.app.contentAdvisoryRating ?? "N/A"
             )
         }
 
@@ -445,6 +470,8 @@ struct AnalyzeCommand {
         try db.saveSummary(
             searchId: searchId,
             avgAgeDays: summary.avgAgeDays,
+            medianAgeDays: summary.medianAgeDays,
+            ageRatio: summary.ageRatio,
             avgFreshnessDays: summary.avgFreshnessDays,
             avgRating: summary.avgRating,
             avgRatingCount: summary.avgRatingCount,
@@ -481,6 +508,8 @@ struct AnalyzedApp {
 
 struct SearchSummary {
     let avgAgeDays: Int
+    let medianAgeDays: Int
+    let ageRatio: Double
     let avgFreshnessDays: Int
     let avgRating: Double
     let avgRatingCount: Int

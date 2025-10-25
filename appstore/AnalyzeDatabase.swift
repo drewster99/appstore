@@ -79,6 +79,8 @@ class AnalyzeDatabase {
             description_match_score INTEGER,
             ratings_per_day REAL,
             genre_name TEXT,
+            version TEXT,
+            age_rating TEXT,
             FOREIGN KEY (search_id) REFERENCES searches(id)
         );
         """
@@ -87,6 +89,8 @@ class AnalyzeDatabase {
         CREATE TABLE IF NOT EXISTS search_summaries (
             search_id TEXT PRIMARY KEY,
             avg_age_days INTEGER,
+            median_age_days INTEGER,
+            age_ratio REAL,
             avg_freshness_days INTEGER,
             avg_rating REAL,
             avg_rating_count INTEGER,
@@ -180,14 +184,17 @@ class AnalyzeDatabase {
         titleMatchScore: Int,
         descriptionMatchScore: Int,
         ratingsPerDay: Double,
-        genreName: String
+        genreName: String,
+        version: String,
+        ageRating: String
     ) throws {
         let sql = """
         INSERT INTO apps (
             search_id, rank, app_id, title, rating, rating_count,
             original_release, latest_release, age_days, freshness_days,
-            title_match_score, description_match_score, ratings_per_day, genre_name
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            title_match_score, description_match_score, ratings_per_day, genre_name,
+            version, age_rating
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
 
         var statement: OpaquePointer?
@@ -223,6 +230,8 @@ class AnalyzeDatabase {
         sqlite3_bind_int(statement, 12, Int32(descriptionMatchScore))
         sqlite3_bind_double(statement, 13, ratingsPerDay)
         sqlite3_bind_text(statement, 14, (genreName as NSString).utf8String, -1, nil)
+        sqlite3_bind_text(statement, 15, (version as NSString).utf8String, -1, nil)
+        sqlite3_bind_text(statement, 16, (ageRating as NSString).utf8String, -1, nil)
 
         guard sqlite3_step(statement) == SQLITE_DONE else {
             let errorMessage = String(cString: sqlite3_errmsg(db))
@@ -233,6 +242,8 @@ class AnalyzeDatabase {
     func saveSummary(
         searchId: String,
         avgAgeDays: Int,
+        medianAgeDays: Int,
+        ageRatio: Double,
         avgFreshnessDays: Int,
         avgRating: Double,
         avgRatingCount: Int,
@@ -246,10 +257,10 @@ class AnalyzeDatabase {
     ) throws {
         let sql = """
         INSERT INTO search_summaries (
-            search_id, avg_age_days, avg_freshness_days, avg_rating, avg_rating_count,
+            search_id, avg_age_days, median_age_days, age_ratio, avg_freshness_days, avg_rating, avg_rating_count,
             avg_title_match_score, avg_description_match_score, avg_ratings_per_day,
             newest_velocity, established_velocity, velocity_ratio, competitivenessV1
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
 
         var statement: OpaquePointer?
@@ -262,16 +273,18 @@ class AnalyzeDatabase {
 
         sqlite3_bind_text(statement, 1, (searchId as NSString).utf8String, -1, nil)
         sqlite3_bind_int(statement, 2, Int32(avgAgeDays))
-        sqlite3_bind_int(statement, 3, Int32(avgFreshnessDays))
-        sqlite3_bind_double(statement, 4, avgRating)
-        sqlite3_bind_int(statement, 5, Int32(avgRatingCount))
-        sqlite3_bind_double(statement, 6, avgTitleMatchScore)
-        sqlite3_bind_double(statement, 7, avgDescriptionMatchScore)
-        sqlite3_bind_double(statement, 8, avgRatingsPerDay)
-        sqlite3_bind_double(statement, 9, newestVelocity)
-        sqlite3_bind_double(statement, 10, establishedVelocity)
-        sqlite3_bind_double(statement, 11, velocityRatio)
-        sqlite3_bind_double(statement, 12, competitivenessV1)
+        sqlite3_bind_int(statement, 3, Int32(medianAgeDays))
+        sqlite3_bind_double(statement, 4, ageRatio)
+        sqlite3_bind_int(statement, 5, Int32(avgFreshnessDays))
+        sqlite3_bind_double(statement, 6, avgRating)
+        sqlite3_bind_int(statement, 7, Int32(avgRatingCount))
+        sqlite3_bind_double(statement, 8, avgTitleMatchScore)
+        sqlite3_bind_double(statement, 9, avgDescriptionMatchScore)
+        sqlite3_bind_double(statement, 10, avgRatingsPerDay)
+        sqlite3_bind_double(statement, 11, newestVelocity)
+        sqlite3_bind_double(statement, 12, establishedVelocity)
+        sqlite3_bind_double(statement, 13, velocityRatio)
+        sqlite3_bind_double(statement, 14, competitivenessV1)
 
         guard sqlite3_step(statement) == SQLITE_DONE else {
             let errorMessage = String(cString: sqlite3_errmsg(db))
