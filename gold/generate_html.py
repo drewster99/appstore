@@ -469,11 +469,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 return;
             }
 
+            // Generate filename with timestamp including seconds
+            const now = new Date();
+            const timestamp = now.getFullYear() +
+                String(now.getMonth() + 1).padStart(2, '0') +
+                String(now.getDate()).padStart(2, '0') + '_' +
+                String(now.getHours()).padStart(2, '0') +
+                String(now.getMinutes()).padStart(2, '0') +
+                String(now.getSeconds()).padStart(2, '0');
+            const filename = `selected_keywords_${timestamp}.json`;
+
             const blob = new Blob([JSON.stringify(selected, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'selected_keywords.json';
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
