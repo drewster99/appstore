@@ -24,6 +24,8 @@ struct AnalyzeCommand {
 
     func execute(options: AnalyzeOptions) async {
         do {
+            // Generate unique ID for this search
+            let searchId = UUID().uuidString
             let startTime = Date()
 
             // Step 1: Get ranked app IDs from MZStore API (using existing scrape functionality)
@@ -67,8 +69,27 @@ struct AnalyzeCommand {
                 analyzeApp(app, searchTerm: options.term, searchWords: searchWords, wordVariants: wordVariants)
             }
 
-            // Step 5: Output CSV with header
-            outputCSV(analyzedApps: analyzedApps, durationMs: durationMs)
+            // Step 5: Calculate summary statistics
+            let summary = calculateSummary(analyzedApps: analyzedApps)
+
+            // Step 6: Output CSV with header
+            outputCSV(analyzedApps: analyzedApps, summary: summary, durationMs: durationMs)
+
+            // Step 7: Save to database
+            do {
+                try saveToDatabase(
+                    searchId: searchId,
+                    options: options,
+                    timestamp: startTime,
+                    durationMs: durationMs,
+                    analyzedApps: analyzedApps,
+                    summary: summary
+                )
+                print()
+                print("Saved to database: \(searchId)")
+            } catch {
+                print("Warning: Failed to save to database: \(error.localizedDescription)")
+            }
 
         } catch {
             print("Error: \(error.localizedDescription)")
@@ -161,7 +182,8 @@ struct AnalyzeCommand {
             latestReleaseDate: latestReleaseDate,
             ageDays: ageDays,
             freshnessDays: freshnessDays,
-            ratingsPerDay: ratingsPerDay
+            ratingsPerDay: ratingsPerDay,
+            genreName: app.primaryGenreName
         )
     }
 
@@ -216,7 +238,7 @@ struct AnalyzeCommand {
         return formatter.string(from: date)
     }
 
-    private func outputCSV(analyzedApps: [AnalyzedApp], durationMs: Int) {
+    private func outputCSV(analyzedApps: [AnalyzedApp], summary: SearchSummary, durationMs: Int) {
         // Header row
         print("App ID,Rating,Rating Count,Original Release,Latest Release,Age Days,Freshness Days,Title Match Score,Description Match Score,Ratings Per Day,Title")
 
@@ -243,58 +265,192 @@ struct AnalyzeCommand {
 
         // Summary statistics - Section 1: Overall
         let totalApps = analyzedApps.count
-        if totalApps > 0 {
-            let avgAge = analyzedApps.map { $0.ageDays }.reduce(0, +) / totalApps
-            let avgFreshness = analyzedApps.map { $0.freshnessDays }.reduce(0, +) / totalApps
-            let avgRating = analyzedApps.compactMap { $0.app.averageUserRating }.reduce(0, +) / Double(analyzedApps.count)
-            let avgRatingCount = analyzedApps.map { $0.app.userRatingCount ?? 0 }.reduce(0, +) / totalApps
-            let totalTitleScore = analyzedApps.map { $0.titleMatchScore }.reduce(0, +)
-            let totalDescScore = analyzedApps.map { $0.descriptionMatchScore }.reduce(0, +)
-            let avgTitleScore = Double(totalTitleScore) / Double(totalApps)
-            let avgDescScore = Double(totalDescScore) / Double(totalApps)
-            let totalRatingsPerDay = analyzedApps.map { $0.ratingsPerDay }.reduce(0, +)
-            let avgRatingsPerDay = totalRatingsPerDay / Double(totalApps)
+        print("Overall Summary (All \(totalApps) Apps):")
+        print("  Average App Age: \(summary.avgAgeDays) days")
+        print("  Average App Freshness: \(summary.avgFreshnessDays) days")
+        print("  Average Star Rating: \(String(format: "%.2f", summary.avgRating))")
+        print("  Average Rating Count: \(summary.avgRatingCount)")
+        print("  Total Title Match Score: \(summary.totalTitleScore)")
+        print("  Total Description Match Score: \(summary.totalDescScore)")
+        print("  Average Title Match Score: \(String(format: "%.2f", summary.avgTitleMatchScore))")
+        print("  Average Description Match Score: \(String(format: "%.2f", summary.avgDescriptionMatchScore))")
+        print("  Total Ratings Per Day: \(String(format: "%.2f", summary.totalRatingsPerDay))")
+        print("  Average Ratings Per Day: \(String(format: "%.2f", summary.avgRatingsPerDay))")
+        print("  Competitiveness Score (v1): \(String(format: "%.1f", summary.competitivenessV1))")
+        print()
 
-            print("Overall Summary (All \(totalApps) Apps):")
-            print("  Average App Age: \(avgAge) days")
-            print("  Average App Freshness: \(avgFreshness) days")
-            print("  Average Star Rating: \(String(format: "%.2f", avgRating))")
-            print("  Average Rating Count: \(avgRatingCount)")
-            print("  Total Title Match Score: \(totalTitleScore)")
-            print("  Total Description Match Score: \(totalDescScore)")
-            print("  Average Title Match Score: \(String(format: "%.2f", avgTitleScore))")
-            print("  Average Description Match Score: \(String(format: "%.2f", avgDescScore))")
-            print("  Total Ratings Per Day: \(String(format: "%.2f", totalRatingsPerDay))")
-            print("  Average Ratings Per Day: \(String(format: "%.2f", avgRatingsPerDay))")
-            print()
+        // Summary statistics - Section 2: Newest 30% vs Established
+        print("Newest 30% (\(summary.newCount) Apps) vs Established (\(summary.establishedCount) Apps):")
+        print("  Newest Apps:")
+        print("    Percentage of Total Ratings: \(String(format: "%.1f", summary.newestPercentOfRatings))%")
+        print("    Average Ratings Per Day (Velocity): \(String(format: "%.2f", summary.newestVelocity))")
+        print("  Established Apps:")
+        print("    Percentage of Total Ratings: \(String(format: "%.1f", summary.establishedPercentOfRatings))%")
+        print("    Average Ratings Per Day (Velocity): \(String(format: "%.2f", summary.establishedVelocity))")
+        print("  Velocity Ratio (Newest/Established): \(String(format: "%.2f", summary.velocityRatio))")
+    }
 
-            // Summary statistics - Section 2: Newest 30% vs Established
-            let sortedByAge = analyzedApps.sorted { $0.ageDays < $1.ageDays }
-            let newCount = Int(ceil(Double(totalApps) * 0.3))
-            let newestApps = Array(sortedByAge.prefix(newCount))
-            let establishedApps = Array(sortedByAge.dropFirst(newCount))
-
-            let totalRatings = analyzedApps.map { $0.app.userRatingCount ?? 0 }.reduce(0, +)
-            let newestRatings = newestApps.map { $0.app.userRatingCount ?? 0 }.reduce(0, +)
-            let establishedRatings = establishedApps.map { $0.app.userRatingCount ?? 0 }.reduce(0, +)
-
-            let newestPercentOfRatings = totalRatings > 0 ? (Double(newestRatings) / Double(totalRatings)) * 100 : 0
-            let establishedPercentOfRatings = totalRatings > 0 ? (Double(establishedRatings) / Double(totalRatings)) * 100 : 0
-
-            let newestAvgRatingsPerDay = newestApps.count > 0 ? newestApps.map { $0.ratingsPerDay }.reduce(0, +) / Double(newestApps.count) : 0
-            let establishedAvgRatingsPerDay = establishedApps.count > 0 ? establishedApps.map { $0.ratingsPerDay }.reduce(0, +) / Double(establishedApps.count) : 0
-
-            let velocityRatio = establishedAvgRatingsPerDay > 0 ? newestAvgRatingsPerDay / establishedAvgRatingsPerDay : 0
-
-            print("Newest 30% (\(newCount) Apps) vs Established (\(establishedApps.count) Apps):")
-            print("  Newest Apps:")
-            print("    Percentage of Total Ratings: \(String(format: "%.1f", newestPercentOfRatings))%")
-            print("    Average Ratings Per Day (Velocity): \(String(format: "%.2f", newestAvgRatingsPerDay))")
-            print("  Established Apps:")
-            print("    Percentage of Total Ratings: \(String(format: "%.1f", establishedPercentOfRatings))%")
-            print("    Average Ratings Per Day (Velocity): \(String(format: "%.2f", establishedAvgRatingsPerDay))")
-            print("  Velocity Ratio (Newest/Established): \(String(format: "%.2f", velocityRatio))")
+    private func calculateSummary(analyzedApps: [AnalyzedApp]) -> SearchSummary {
+        let totalApps = analyzedApps.count
+        guard totalApps > 0 else {
+            return SearchSummary(
+                avgAgeDays: 0, avgFreshnessDays: 0, avgRating: 0, avgRatingCount: 0,
+                avgTitleMatchScore: 0, avgDescriptionMatchScore: 0, avgRatingsPerDay: 0,
+                newestVelocity: 0, establishedVelocity: 0, velocityRatio: 0, competitivenessV1: 0,
+                totalTitleScore: 0, totalDescScore: 0, totalRatingsPerDay: 0,
+                newestPercentOfRatings: 0, establishedPercentOfRatings: 0,
+                newCount: 0, establishedCount: 0
+            )
         }
+
+        // Basic averages
+        let avgAge = analyzedApps.map { $0.ageDays }.reduce(0, +) / totalApps
+        let avgFreshness = analyzedApps.map { $0.freshnessDays }.reduce(0, +) / totalApps
+        let avgRating = analyzedApps.compactMap { $0.app.averageUserRating }.reduce(0, +) / Double(totalApps)
+        let avgRatingCount = analyzedApps.map { $0.app.userRatingCount ?? 0 }.reduce(0, +) / totalApps
+        let totalTitleScore = analyzedApps.map { $0.titleMatchScore }.reduce(0, +)
+        let totalDescScore = analyzedApps.map { $0.descriptionMatchScore }.reduce(0, +)
+        let avgTitleScore = Double(totalTitleScore) / Double(totalApps)
+        let avgDescScore = Double(totalDescScore) / Double(totalApps)
+        let totalRatingsPerDay = analyzedApps.map { $0.ratingsPerDay }.reduce(0, +)
+        let avgRatingsPerDay = totalRatingsPerDay / Double(totalApps)
+
+        // Newest 30% vs Established
+        let sortedByAge = analyzedApps.sorted { $0.ageDays < $1.ageDays }
+        let newCount = Int(ceil(Double(totalApps) * 0.3))
+        let newestApps = Array(sortedByAge.prefix(newCount))
+        let establishedApps = Array(sortedByAge.dropFirst(newCount))
+
+        let totalRatings = analyzedApps.map { $0.app.userRatingCount ?? 0 }.reduce(0, +)
+        let newestRatings = newestApps.map { $0.app.userRatingCount ?? 0 }.reduce(0, +)
+        let establishedRatings = establishedApps.map { $0.app.userRatingCount ?? 0 }.reduce(0, +)
+
+        let newestPercentOfRatings = totalRatings > 0 ? (Double(newestRatings) / Double(totalRatings)) * 100 : 0
+        let establishedPercentOfRatings = totalRatings > 0 ? (Double(establishedRatings) / Double(totalRatings)) * 100 : 0
+
+        let newestAvgRatingsPerDay = newestApps.count > 0 ? newestApps.map { $0.ratingsPerDay }.reduce(0, +) / Double(newestApps.count) : 0
+        let establishedAvgRatingsPerDay = establishedApps.count > 0 ? establishedApps.map { $0.ratingsPerDay }.reduce(0, +) / Double(establishedApps.count) : 0
+
+        let velocityRatio = establishedAvgRatingsPerDay > 0 ? newestAvgRatingsPerDay / establishedAvgRatingsPerDay : 0
+
+        // Calculate competitivenessV1
+        let competitivenessV1 = calculateCompetitivenessV1(
+            avgRatingsPerDay: avgRatingsPerDay,
+            avgFreshness: avgFreshness,
+            avgTitleMatchScore: avgTitleScore,
+            velocityRatio: velocityRatio
+        )
+
+        return SearchSummary(
+            avgAgeDays: avgAge,
+            avgFreshnessDays: avgFreshness,
+            avgRating: avgRating,
+            avgRatingCount: avgRatingCount,
+            avgTitleMatchScore: avgTitleScore,
+            avgDescriptionMatchScore: avgDescScore,
+            avgRatingsPerDay: avgRatingsPerDay,
+            newestVelocity: newestAvgRatingsPerDay,
+            establishedVelocity: establishedAvgRatingsPerDay,
+            velocityRatio: velocityRatio,
+            competitivenessV1: competitivenessV1,
+            totalTitleScore: totalTitleScore,
+            totalDescScore: totalDescScore,
+            totalRatingsPerDay: totalRatingsPerDay,
+            newestPercentOfRatings: newestPercentOfRatings,
+            establishedPercentOfRatings: establishedPercentOfRatings,
+            newCount: newCount,
+            establishedCount: establishedApps.count
+        )
+    }
+
+    private func calculateCompetitivenessV1(
+        avgRatingsPerDay: Double,
+        avgFreshness: Int,
+        avgTitleMatchScore: Double,
+        velocityRatio: Double
+    ) -> Double {
+        // Normalize avgRatingsPerDay (assume 0-100 range, cap at 100)
+        let normalizedTraffic = min(avgRatingsPerDay, 100.0)
+
+        // Normalize freshness (0 = just updated, 365+ = very stale)
+        // Lower freshness = more competitive (actively maintained)
+        let normalizedFreshness = max(0, 100 - Double(min(avgFreshness, 365)) / 365.0 * 100)
+
+        // Normalize title match score (0-5 range to 0-100)
+        let normalizedTitleMatch = avgTitleMatchScore * 20.0
+
+        // Normalize velocity ratio (0-5 range to 0-100, inverted)
+        // Lower ratio = harder for new apps (more competitive)
+        let normalizedVelocity = max(0, 100 - min(velocityRatio, 5.0) * 20.0)
+
+        // Weighted average (higher = more competitive)
+        let competitiveness = (
+            normalizedTraffic * 0.35 +
+            normalizedFreshness * 0.25 +
+            normalizedTitleMatch * 0.20 +
+            normalizedVelocity * 0.20
+        )
+
+        return min(100, max(0, competitiveness))
+    }
+
+    private func saveToDatabase(
+        searchId: String,
+        options: AnalyzeOptions,
+        timestamp: Date,
+        durationMs: Int,
+        analyzedApps: [AnalyzedApp],
+        summary: SearchSummary
+    ) throws {
+        let db = AnalyzeDatabase()
+        try db.open()
+        defer { db.close() }
+
+        // Save search metadata
+        try db.saveSearch(
+            id: searchId,
+            keyword: options.term,
+            storefront: options.storefront,
+            language: options.language,
+            timestamp: timestamp,
+            durationMs: durationMs
+        )
+
+        // Save each app
+        for (index, analyzed) in analyzedApps.enumerated() {
+            try db.saveApp(
+                searchId: searchId,
+                rank: index + 1,
+                appId: analyzed.app.trackId,
+                title: analyzed.app.trackName,
+                rating: analyzed.app.averageUserRating,
+                ratingCount: analyzed.app.userRatingCount,
+                originalRelease: formatDate(analyzed.originalReleaseDate),
+                latestRelease: formatDate(analyzed.latestReleaseDate),
+                ageDays: analyzed.ageDays,
+                freshnessDays: analyzed.freshnessDays,
+                titleMatchScore: analyzed.titleMatchScore,
+                descriptionMatchScore: analyzed.descriptionMatchScore,
+                ratingsPerDay: analyzed.ratingsPerDay,
+                genreName: analyzed.genreName
+            )
+        }
+
+        // Save summary
+        try db.saveSummary(
+            searchId: searchId,
+            avgAgeDays: summary.avgAgeDays,
+            avgFreshnessDays: summary.avgFreshnessDays,
+            avgRating: summary.avgRating,
+            avgRatingCount: summary.avgRatingCount,
+            avgTitleMatchScore: summary.avgTitleMatchScore,
+            avgDescriptionMatchScore: summary.avgDescriptionMatchScore,
+            avgRatingsPerDay: summary.avgRatingsPerDay,
+            newestVelocity: summary.newestVelocity,
+            establishedVelocity: summary.establishedVelocity,
+            velocityRatio: summary.velocityRatio,
+            competitivenessV1: summary.competitivenessV1
+        )
     }
 
     private func escapedCSV(_ text: String) -> String {
@@ -315,4 +471,26 @@ struct AnalyzedApp {
     let ageDays: Int
     let freshnessDays: Int
     let ratingsPerDay: Double
+    let genreName: String
+}
+
+struct SearchSummary {
+    let avgAgeDays: Int
+    let avgFreshnessDays: Int
+    let avgRating: Double
+    let avgRatingCount: Int
+    let avgTitleMatchScore: Double
+    let avgDescriptionMatchScore: Double
+    let avgRatingsPerDay: Double
+    let newestVelocity: Double
+    let establishedVelocity: Double
+    let velocityRatio: Double
+    let competitivenessV1: Double
+    let totalTitleScore: Int
+    let totalDescScore: Int
+    let totalRatingsPerDay: Double
+    let newestPercentOfRatings: Double
+    let establishedPercentOfRatings: Double
+    let newCount: Int
+    let establishedCount: Int
 }
