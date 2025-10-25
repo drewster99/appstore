@@ -149,9 +149,9 @@ class KeywordAnalyzer:
                     summary['competitiveness_v1'] = float(line.split(':')[1].strip())
                 elif "Velocity Ratio (Newest/Established):" in line:
                     summary['velocity_ratio'] = float(line.split(':')[1].strip())
-                elif "Median Age:" in line:
+                elif "Median App Age:" in line:
                     summary['median_age_days'] = int(line.split(':')[1].strip().split()[0])
-                elif "Age Ratio:" in line:
+                elif "Age Ratio (Old/New):" in line:
                     summary['age_ratio'] = float(line.split(':')[1].strip())
 
         return {
