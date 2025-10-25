@@ -1,0 +1,15 @@
+# Generated output files
+keywords_scored.json
+keyword_report.html
+selected_keywords.json
+analysis_results/
+
+# Python virtual environment
+venv/
+__pycache__/
+
+# Large data files (example data - user should provide their own)
+*.xlsx
+
+# Temporary documentation
+*_SUMMARY.md
