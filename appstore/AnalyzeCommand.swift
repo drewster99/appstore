@@ -194,12 +194,17 @@ struct AnalyzeCommand {
             for variant in variants {
                 // Use word boundary matching - check if variant appears as a whole word
                 let pattern = "\\b\(NSRegularExpression.escapedPattern(for: variant))\\b"
-                if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
+                do {
+                    let regex = try NSRegularExpression(pattern: pattern, options: .caseInsensitive)
                     let range = NSRange(text.startIndex..., in: text)
                     if regex.firstMatch(in: text, range: range) != nil {
                         count += 1
                         break // Count each word only once
                     }
+                } catch {
+                    // This should never happen since pattern is escaped, but handle explicitly
+                    print("Warning: Failed to compile regex pattern for variant '\(variant)': \(error)")
+                    continue
                 }
             }
         }

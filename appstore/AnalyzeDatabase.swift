@@ -24,14 +24,19 @@ class AnalyzeDatabase {
     init() {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
         let appstoreDir = homeDir.appendingPathComponent(".appstore")
-
-        // Create directory if it doesn't exist
-        try? FileManager.default.createDirectory(at: appstoreDir, withIntermediateDirectories: true)
-
         self.dbPath = appstoreDir.appendingPathComponent("analytics.db").path
     }
 
     func open() throws {
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let appstoreDir = homeDir.appendingPathComponent(".appstore")
+
+        do {
+            try FileManager.default.createDirectory(at: appstoreDir, withIntermediateDirectories: true)
+        } catch {
+            throw DatabaseError.openFailed("Failed to create directory: \(error.localizedDescription)")
+        }
+
         if sqlite3_open(dbPath, &db) != SQLITE_OK {
             let errorMessage = String(cString: sqlite3_errmsg(db))
             throw DatabaseError.openFailed(errorMessage)
