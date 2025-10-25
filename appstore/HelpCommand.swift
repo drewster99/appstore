@@ -224,6 +224,10 @@ class HelpCommand {
             search    Search the App Store for apps
             lookup    Look up specific apps by ID or bundle
             top       View top charts from the App Store
+            list      List available values for various options
+            scrape    Search using App Store scraper API
+            ranks     Analyze keyword rankings for an app
+            analyze   Analyze top 20 search results with keyword matching
             --help    Display help information
 
         Use 'appstore --help' for more information.
@@ -239,12 +243,18 @@ class HelpCommand {
           lookup            Look up specific apps
           top <chart>       View top charts
           list <type>       List available values
+          scrape <query>    Search using App Store scraper API
+          ranks <app-id>    Analyze keyword rankings for an app
+          analyze <query>   Analyze top 20 search results with keyword matching
 
         Examples:
           appstore search twitter
           appstore lookup --id 284910350
           appstore top paid
           appstore list genres
+          appstore scrape spotify
+          appstore ranks 324684580
+          appstore analyze "cat toy"
 
         Try 'appstore --help' for more information.
         """)
