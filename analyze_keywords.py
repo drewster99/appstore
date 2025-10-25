@@ -442,7 +442,9 @@ def generate_html_dashboard(data: Dict[str, Any], output_path: Path):
             font-size: 13px;
             font-weight: normal;
             white-space: normal;
-            max-width: 300px;
+            min-width: 250px;
+            max-width: 350px;
+            width: max-content;
             border-radius: 6px;
             z-index: 10000;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
@@ -614,7 +616,7 @@ def generate_html_dashboard(data: Dict[str, Any], output_path: Path):
                     <th data-sort="genre">Genre</th>
                     <th data-sort="total_score">Total Score<span class="info-icon" data-tooltip="Combined score from input data (rank + genre + popularity)">i</span></th>
                     <th data-sort="competitiveness">Competitive<span class="info-icon" data-tooltip="How hard to compete (0-100). Lower = easier (green), Higher = harder (red). Based on traffic, freshness, title matching, and new app velocity.">i</span></th>
-                    <th data-sort="avg_ratings_per_day">Ratings/Day<span class="info-icon" data-tooltip="Average of (each app's total ratings ÷ age in days). Shows typical daily rating activity for apps ranking for this keyword.">i</span></th>
+                    <th data-sort="avg_ratings_per_day">Ratings/Day<span class="info-icon" data-tooltip="Unweighted average of each app's ratings/day ratio. Shows typical daily rating velocity for apps in this keyword, not dominated by old mega-apps.">i</span></th>
                     <th data-sort="median_age_days">Median Age<span class="info-icon" data-tooltip="Median age of top 20 apps. Lower = market has newer apps competing successfully.">i</span></th>
                     <th data-sort="age_ratio">Age Ratio<span class="info-icon" data-tooltip="Oldest 70% avg age ÷ newest 30% avg age. Higher ratio (10+) = very new apps competing. Low ratio (1-3) = all apps similar age.">i</span></th>
                     <th data-sort="avg_freshness_days">Avg Fresh<span class="info-icon" data-tooltip="Days since last update for top 20 apps. Lower = apps are more actively maintained and competitive.">i</span></th>
