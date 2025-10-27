@@ -158,8 +158,14 @@ def process_batch(
             print("No pending keywords to process", file=sys.stderr)
         return (0, 0)
 
-    # Update batch status to in_progress
-    update_batch_status(batch_id, 'in_progress')
+    # Update batch status to in_progress and record start time
+    with transaction() as conn:
+        conn.execute(
+            """UPDATE keyword_batches
+               SET status = ?, started_at = CURRENT_TIMESTAMP
+               WHERE id = ?""",
+            ('in_progress', batch_id)
+        )
 
     succeeded = 0
     failed = 0
@@ -204,7 +210,11 @@ def process_batch(
                 else:
                     if verbose:
                         print("✓ (no search_id found)", file=sys.stderr)
-                    update_batch_keyword_status(keyword_id, 'completed')
+                    update_batch_keyword_status(
+                        keyword_id,
+                        'completed',
+                        error_message='No apps found in App Store for this keyword'
+                    )
                     succeeded += 1
             else:
                 error_msg = result.stderr[:200] if result.stderr else "Unknown error"
@@ -232,13 +242,17 @@ def process_batch(
         if idx < total and rate_limit_seconds > 0:
             time.sleep(rate_limit_seconds)
 
-    # Update final batch status
-    if failed == 0:
-        update_batch_status(batch_id, 'completed')
-    elif succeeded == 0:
-        update_batch_status(batch_id, 'failed')
-    else:
-        update_batch_status(batch_id, 'completed')  # Partial success
+    # Update final batch status with completion time and duration
+    final_status = 'completed' if failed == 0 else ('failed' if succeeded == 0 else 'completed')
+    with transaction() as conn:
+        conn.execute(
+            """UPDATE keyword_batches
+               SET status = ?,
+                   completed_at = CURRENT_TIMESTAMP,
+                   duration_seconds = CAST((julianday(CURRENT_TIMESTAMP) - julianday(started_at)) * 86400 AS INTEGER)
+               WHERE id = ?""",
+            (final_status, batch_id)
+        )
 
     if verbose:
         print("", file=sys.stderr)

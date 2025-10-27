@@ -13,6 +13,23 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from db.database import execute_one, execute_query
 
 
+def format_duration(seconds: int) -> str:
+    """Format duration in seconds to human-readable string."""
+    if seconds is None:
+        return "N/A"
+
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    secs = seconds % 60
+
+    if hours > 0:
+        return f"{hours}h {minutes}m {secs}s"
+    elif minutes > 0:
+        return f"{minutes}m {secs}s"
+    else:
+        return f"{secs}s"
+
+
 def load_batch_results(batch_id: int) -> Dict[str, Any]:
     """
     Load batch results from database and format for HTML dashboard.
@@ -148,13 +165,34 @@ def load_batch_results(batch_id: int) -> Dict[str, Any]:
     print(f"  Loaded {len(results)} successful results", file=sys.stderr)
     print(f"  {len(failed)} failed/pending", file=sys.stderr)
 
+    # Format timing information
+    metadata = {
+        'generated': datetime.now(timezone.utc).isoformat(),
+        'batch_id': batch_id,
+        'total_keywords': batch['total_keywords'],
+        'successful': len(results),
+        'failed': len(failed)
+    }
+
+    # Add batch notes if available
+    if batch['notes']:
+        metadata['notes'] = batch['notes']
+
+    # Add timing information if available
+    if batch['started_at']:
+        metadata['started_at'] = batch['started_at']
+    if batch['completed_at']:
+        metadata['completed_at'] = batch['completed_at']
+    if batch['duration_seconds']:
+        metadata['duration_seconds'] = batch['duration_seconds']
+        metadata['duration_formatted'] = format_duration(batch['duration_seconds'])
+        # Calculate rate (keywords per hour)
+        if batch['duration_seconds'] > 0:
+            rate = (batch['total_keywords'] / batch['duration_seconds']) * 3600
+            metadata['processing_rate'] = f"{rate:.1f} keywords/hour"
+
     return {
-        'metadata': {
-            'generated': datetime.now(timezone.utc).isoformat(),
-            'total_keywords': batch['total_keywords'],
-            'successful': len(results),
-            'failed': len(failed)
-        },
+        'metadata': metadata,
         'results': results,
         'failed': failed
     }
@@ -477,6 +515,10 @@ def generate_html_dashboard(data: Dict[str, Any], output_path: Path):
 
         <div class="metadata">
             <div class="metric">
+                <div class="metric-label">Batch ID</div>
+                <div class="metric-value" style="font-size: 20px;">#""" + str(data['metadata']['batch_id']) + """</div>
+            </div>
+            <div class="metric">
                 <div class="metric-label">Total Keywords</div>
                 <div class="metric-value">""" + str(data['metadata']['total_keywords']) + """</div>
             </div>
@@ -487,12 +529,29 @@ def generate_html_dashboard(data: Dict[str, Any], output_path: Path):
             <div class="metric">
                 <div class="metric-label">Failed</div>
                 <div class="metric-value" style="color: #ff3b30;">""" + str(data['metadata']['failed']) + """</div>
+            </div>""" + ("""
+            <div class="metric">
+                <div class="metric-label">Started</div>
+                <div class="metric-value" style="font-size: 16px;">""" + data['metadata']['started_at'][:16].replace('T', ' ') + """</div>
             </div>
             <div class="metric">
-                <div class="metric-label">Generated</div>
-                <div class="metric-value" style="font-size: 16px;">""" + data['metadata']['generated'][:10] + """</div>
+                <div class="metric-label">Completed</div>
+                <div class="metric-value" style="font-size: 16px;">""" + data['metadata']['completed_at'][:16].replace('T', ' ') + """</div>
             </div>
-        </div>
+            <div class="metric">
+                <div class="metric-label">Duration</div>
+                <div class="metric-value" style="font-size: 18px;">""" + data['metadata']['duration_formatted'] + """</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Processing Rate</div>
+                <div class="metric-value" style="font-size: 16px;">""" + data['metadata']['processing_rate'] + """</div>
+            </div>""" if 'duration_formatted' in data['metadata'] else "") + """
+        </div>""" + ("""
+
+        <div style="background: #f5f5f7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <div style="font-size: 12px; color: #86868b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;">Batch Notes</div>
+            <div style="font-size: 14px; color: #1d1d1f;">""" + data['metadata']['notes'] + """</div>
+        </div>""" if 'notes' in data['metadata'] else "") + """
 
         <div class="controls">
             <input type="text" id="searchBox" placeholder="🔍 Search keywords...">

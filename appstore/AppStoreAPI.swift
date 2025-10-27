@@ -55,6 +55,7 @@ enum AppStoreAPIError: Error, LocalizedError {
     case noData
     case decodingError(String)
     case networkError(String)
+    case httpError(statusCode: Int, message: String)
 
     var errorDescription: String? {
         switch self {
@@ -66,6 +67,8 @@ enum AppStoreAPIError: Error, LocalizedError {
             return "Failed to decode response: \(message)"
         case .networkError(let message):
             return "Network error: \(message)"
+        case .httpError(let statusCode, let message):
+            return "HTTP \(statusCode): \(message)"
         }
     }
 }

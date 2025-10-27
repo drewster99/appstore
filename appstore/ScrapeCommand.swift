@@ -171,16 +171,16 @@ struct ScrapeCommand {
                 print("\nHTTP Status: \(httpResponse.statusCode)")
             }
             if httpResponse.statusCode != 200 {
-                // Print all response headers when there's an error
-                print("\nError Response Headers (Status \(httpResponse.statusCode)):")
-                for (key, value) in httpResponse.allHeaderFields {
-                    print("  \(key): \(value)")
+                // Build detailed error message
+                var errorDetails = "HTTP \(httpResponse.statusCode)"
+
+                if let responseString = String(data: data, encoding: .utf8), !responseString.isEmpty {
+                    // Include first 200 chars of response
+                    let preview = String(responseString.prefix(200))
+                    errorDetails += " - \(preview)"
                 }
 
-                if let responseString = String(data: data, encoding: .utf8) {
-                    print("\nError Response Body:")
-                    print(responseString)
-                }
+                throw AppStoreAPIError.httpError(statusCode: httpResponse.statusCode, message: errorDetails)
             }
         }
 
