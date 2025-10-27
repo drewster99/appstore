@@ -125,7 +125,8 @@ def load_batch_results(batch_id: int) -> Dict[str, Any]:
                     'ratings_per_day': app['ratings_per_day'] or 0.0,
                     'genre': app['genre_name'] or '',
                     'version': app['version'] or '',
-                    'age_rating': app['age_rating'] or ''
+                    'age_rating': app['age_rating'] or '',
+                    'minimum_os_version': app['minimum_os_version'] or ''
                 })
 
             # Format summary
@@ -683,6 +684,7 @@ def generate_html_dashboard(data: Dict[str, Any], output_path: Path):
                                 <div>Total Ratings</div>
                                 <div>Genre</div>
                                 <div>Version</div>
+                                <div>Min iOS</div>
                                 <div>Age Rating</div>
                             </div>
                             ${item.analysis.apps.slice(0, 20).map((app, i) => `
@@ -701,6 +703,7 @@ def generate_html_dashboard(data: Dict[str, Any], output_path: Path):
                                     <div class="app-cell">${app.rating_count?.toLocaleString() || 0}</div>
                                     <div class="app-cell" style="font-size: 11px; overflow: hidden; text-overflow: ellipsis;" title="${app.genre || 'N/A'}">${app.genre || 'N/A'}</div>
                                     <div class="app-cell" style="font-family: monospace; font-size: 11px;">${app.version || 'N/A'}</div>
+                                    <div class="app-cell" style="font-size: 11px;">${app.minimum_os_version || 'N/A'}</div>
                                     <div class="app-cell" style="font-size: 11px;">${app.age_rating || 'N/A'}</div>
                                 </div>
                             `).join('')}

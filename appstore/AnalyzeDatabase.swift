@@ -186,15 +186,16 @@ class AnalyzeDatabase {
         ratingsPerDay: Double,
         genreName: String,
         version: String,
-        ageRating: String
+        ageRating: String,
+        minimumOsVersion: String
     ) throws {
         let sql = """
         INSERT INTO apps (
             search_id, rank, app_id, title, rating, rating_count,
             original_release, latest_release, age_days, freshness_days,
             title_match_score, description_match_score, ratings_per_day, genre_name,
-            version, age_rating
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            version, age_rating, minimum_os_version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
 
         var statement: OpaquePointer?
@@ -232,6 +233,7 @@ class AnalyzeDatabase {
         sqlite3_bind_text(statement, 14, (genreName as NSString).utf8String, -1, nil)
         sqlite3_bind_text(statement, 15, (version as NSString).utf8String, -1, nil)
         sqlite3_bind_text(statement, 16, (ageRating as NSString).utf8String, -1, nil)
+        sqlite3_bind_text(statement, 17, (minimumOsVersion as NSString).utf8String, -1, nil)
 
         guard sqlite3_step(statement) == SQLITE_DONE else {
             let errorMessage = String(cString: sqlite3_errmsg(db))

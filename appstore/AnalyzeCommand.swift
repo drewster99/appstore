@@ -245,7 +245,7 @@ struct AnalyzeCommand {
 
     private func outputCSV(analyzedApps: [AnalyzedApp], summary: SearchSummary, durationMs: Int) {
         // Header row
-        print("App ID,Rating,Rating Count,Original Release,Latest Release,Age Days,Freshness Days,Title Match Score,Description Match Score,Ratings Per Day,Title,Genre,Version,Age Rating")
+        print("App ID,Rating,Rating Count,Original Release,Latest Release,Age Days,Freshness Days,Title Match Score,Description Match Score,Ratings Per Day,Title,Genre,Version,Min iOS,Age Rating")
 
         // Data rows
         for analyzed in analyzedApps {
@@ -263,9 +263,10 @@ struct AnalyzeCommand {
             let title = escapedCSV(app.trackName)
             let genre = escapedCSV(analyzed.genreName)
             let version = escapedCSV(app.version)
+            let minIos = escapedCSV(app.minimumOsVersion)
             let ageRating = escapedCSV(app.contentAdvisoryRating ?? "N/A")
 
-            print("\(appId),\(rating),\(ratingCount),\(originalRelease),\(latestRelease),\(ageDays),\(freshnessDays),\(titleScore),\(descScore),\(ratingsPerDay),\(title),\(genre),\(version),\(ageRating)")
+            print("\(appId),\(rating),\(ratingCount),\(originalRelease),\(latestRelease),\(ageDays),\(freshnessDays),\(titleScore),\(descScore),\(ratingsPerDay),\(title),\(genre),\(version),\(minIos),\(ageRating)")
         }
 
         // Blank line
@@ -462,7 +463,8 @@ struct AnalyzeCommand {
                 ratingsPerDay: analyzed.ratingsPerDay,
                 genreName: analyzed.genreName,
                 version: analyzed.app.version,
-                ageRating: analyzed.app.contentAdvisoryRating ?? "N/A"
+                ageRating: analyzed.app.contentAdvisoryRating ?? "N/A",
+                minimumOsVersion: analyzed.app.minimumOsVersion
             )
         }
 
