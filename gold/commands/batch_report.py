@@ -457,6 +457,15 @@ def generate_html_dashboard(data: Dict[str, Any], output_path: Path):
             white-space: nowrap;
         }
 
+        .app-title a {
+            color: #007aff;
+            text-decoration: none;
+        }
+
+        .app-title a:hover {
+            text-decoration: underline;
+        }
+
         .app-rating {
             text-align: center;
         }
@@ -464,6 +473,24 @@ def generate_html_dashboard(data: Dict[str, Any], output_path: Path):
         .app-cell {
             text-align: center;
             font-size: 12px;
+        }
+
+        .app-id-cell {
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 11px;
+            color: #007aff;
+            user-select: all;
+            text-align: center;
+        }
+
+        .app-id-cell:hover {
+            background: #f0f0f0;
+            text-decoration: underline;
+        }
+
+        .app-id-cell:active {
+            background: #e0e0e0;
         }
 
         .app-match {
@@ -661,8 +688,8 @@ def generate_html_dashboard(data: Dict[str, Any], output_path: Path):
                             ${item.analysis.apps.slice(0, 20).map((app, i) => `
                                 <div class="app-item">
                                     <div class="app-rank">#${i + 1}</div>
-                                    <div class="app-cell" style="font-family: monospace; font-size: 11px;">${app.app_id || 'N/A'}</div>
-                                    <div class="app-title" title="${app.title}">${app.title}</div>
+                                    <div class="app-id-cell" onclick="copyLookupCommand('${app.app_id}')" title="Click to copy: appstore lookup ${app.app_id} --verbosity complete">${app.app_id || 'N/A'}</div>
+                                    <div class="app-title" title="${app.title}"><a href="https://apps.apple.com/app/id${app.app_id}" target="_blank" rel="noopener">${app.title}</a></div>
                                     <div class="app-cell">${app.rating ? '⭐ ' + app.rating.toFixed(1) : 'N/A'}</div>
                                     <div class="app-cell">${app.ratings_per_day.toFixed(1)}</div>
                                     <div class="app-cell">${app.age_days.toLocaleString()}</div>
@@ -684,6 +711,28 @@ def generate_html_dashboard(data: Dict[str, Any], output_path: Path):
         }
 
         let filteredData = [];
+
+        function copyLookupCommand(appId) {
+            const command = `appstore lookup ${appId} --verbosity complete`;
+            navigator.clipboard.writeText(command).then(() => {
+                // Show visual feedback
+                const cells = document.querySelectorAll('.app-id-cell');
+                cells.forEach(cell => {
+                    if (cell.textContent === appId) {
+                        const originalBg = cell.style.background;
+                        cell.style.background = '#34c759';
+                        cell.style.color = 'white';
+                        setTimeout(() => {
+                            cell.style.background = originalBg;
+                            cell.style.color = '#007aff';
+                        }, 500);
+                    }
+                });
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy command to clipboard');
+            });
+        }
 
         function renderTable() {
             // Filter data
