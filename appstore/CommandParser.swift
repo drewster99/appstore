@@ -115,7 +115,6 @@ class CommandParser {
                             return .searchHelp
                         }
 
-
                     default:
                         // Check if it's an unknown flag
                         if searchTerms[i].hasPrefix("--") || (searchTerms[i].hasPrefix("-") && searchTerms[i] != "-") {
