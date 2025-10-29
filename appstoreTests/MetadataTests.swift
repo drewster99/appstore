@@ -64,10 +64,7 @@ class MetadataTests: XCTestCase {
     }
 
     func testAppStoreResponse() throws {
-        guard let testData = Data("{\"test\": \"data\"}".utf8) else {
-            XCTFail("Failed to create test data")
-            return
-        }
+        let testData = Data("{\"test\": \"data\"}".utf8)
 
         let response = AppStoreResponse(
             metadata: AppStoreResponseMetadata(
