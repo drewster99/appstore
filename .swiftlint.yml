@@ -1,0 +1,33 @@
+
+disabled_rules:
+  - trailing_whitespace
+  - trailing_newline
+  - nesting
+  - cyclomatic_complexity
+  - file_length
+  - function_body_length
+  - type_body_length
+  - line_length
+  - identifier_name
+  - large_tuple
+  - type_name
+  - generic_type_name
+  - function_parameter_count
+  - redundant_optional_initialization
+  - private_over_fileprivate
+  - syntactic_sugar
+  - redundant_string_enum_value
+
+opt_in_rules:
+  - empty_count
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+
+todo:
+  severity: warning
+empty_count:
+  severity: warning
+force_cast:
+  severity: warning
+force_try: 
+  severity: warning
