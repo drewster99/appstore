@@ -1,6 +1,5 @@
 import Foundation
 
-
 enum SearchAttribute: String, CaseIterable {
     // Primary software attributes
     case softwareDeveloper
