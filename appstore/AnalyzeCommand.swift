@@ -222,7 +222,7 @@ struct AnalyzeCommand {
         let formatters = [
             "yyyy-MM-dd'T'HH:mm:ssZ",
             "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
-            "yyyy-MM-dd",
+            "yyyy-MM-dd"
         ]
 
         for format in formatters {
@@ -344,8 +344,8 @@ struct AnalyzeCommand {
         let establishedApps = Array(sortedByAge.dropFirst(newCount))
 
         // Calculate age ratio (old/new) - avoid division by zero
-        let newestAvgAge = newestApps.count > 0 ? newestApps.map { $0.ageDays }.reduce(0, +) / newestApps.count : 1
-        let establishedAvgAge = establishedApps.count > 0 ? establishedApps.map { $0.ageDays }.reduce(0, +) / establishedApps.count : 1
+        let newestAvgAge = !newestApps.isEmpty ? newestApps.map { $0.ageDays }.reduce(0, +) / newestApps.count : 1
+        let establishedAvgAge = !establishedApps.isEmpty ? establishedApps.map { $0.ageDays }.reduce(0, +) / establishedApps.count : 1
         let ageRatio = Double(establishedAvgAge) / Double(max(1, newestAvgAge))
 
         let totalRatings = analyzedApps.map { $0.app.userRatingCount ?? 0 }.reduce(0, +)
@@ -355,8 +355,8 @@ struct AnalyzeCommand {
         let newestPercentOfRatings = totalRatings > 0 ? (Double(newestRatings) / Double(totalRatings)) * 100 : 0
         let establishedPercentOfRatings = totalRatings > 0 ? (Double(establishedRatings) / Double(totalRatings)) * 100 : 0
 
-        let newestAvgRatingsPerDay = newestApps.count > 0 ? newestApps.map { $0.ratingsPerDay }.reduce(0, +) / Double(newestApps.count) : 0
-        let establishedAvgRatingsPerDay = establishedApps.count > 0 ? establishedApps.map { $0.ratingsPerDay }.reduce(0, +) / Double(establishedApps.count) : 0
+        let newestAvgRatingsPerDay = !newestApps.isEmpty ? newestApps.map { $0.ratingsPerDay }.reduce(0, +) / Double(newestApps.count) : 0
+        let establishedAvgRatingsPerDay = !establishedApps.isEmpty ? establishedApps.map { $0.ratingsPerDay }.reduce(0, +) / Double(establishedApps.count) : 0
 
         let velocityRatio = establishedAvgRatingsPerDay > 0 ? newestAvgRatingsPerDay / establishedAvgRatingsPerDay : 0
 
