@@ -96,11 +96,9 @@ struct RanksCommand {
 
                     // Find the app's rank by its position in the ranked array
                     var rank: Int? = nil
-                    for (idx, appId) in rankedAppIds.enumerated() {
-                        if appId == options.appId {
-                            rank = idx + 1  // Rank is 1-based
-                            break
-                        }
+                    for (idx, appId) in rankedAppIds.enumerated() where appId == options.appId {
+                        rank = idx + 1  // Rank is 1-based
+                        break
                     }
 
                     // Store ranking for minimal verbosity
@@ -158,7 +156,6 @@ struct RanksCommand {
             case .json, .rawJson:
                 outputJSONResults(app: app, keywords: keywords, rankings: rankings, format: options.commonOptions.outputFormat)
             case .html, .htmlOpen:
-                // TODO: Implement HTML output
                 print("HTML output not yet implemented for ranks command")
             }
 
@@ -242,7 +239,7 @@ struct RanksCommand {
             competitorLimit = nil  // Show all
         }
 
-        let competitors = competitorLimit != nil ? Array(results.prefix(competitorLimit!)) : results
+        let competitors = competitorLimit.map { Array(results.prefix($0)) } ?? results
 
         if !competitors.isEmpty {
             print()
@@ -282,7 +279,7 @@ struct RanksCommand {
                 reviewLimit = nil  // Show all
             }
 
-            let topReviewed = reviewLimit != nil ? Array(sortedByReviews.prefix(reviewLimit!)) : sortedByReviews
+            let topReviewed = reviewLimit.map { Array(sortedByReviews.prefix($0)) } ?? sortedByReviews
 
             if !topReviewed.isEmpty {
                 print()
@@ -329,12 +326,10 @@ struct RanksCommand {
         }
 
         // Step 3: For words with punctuation, add stripped versions
-        for word in baseKeywords {
-            if word.rangeOfCharacter(from: .punctuationCharacters) != nil {
-                let stripped = stripPunctuation(from: word)
-                if !stripped.isEmpty {
-                    baseKeywords.insert(stripped)
-                }
+        for word in baseKeywords where word.rangeOfCharacter(from: .punctuationCharacters) != nil {
+            let stripped = stripPunctuation(from: word)
+            if !stripped.isEmpty {
+                baseKeywords.insert(stripped)
             }
         }
 
@@ -356,11 +351,9 @@ struct RanksCommand {
         let allWords = Array(baseKeywords)
         if allWords.count > 1 {
             for i in 0..<allWords.count {
-                for j in 0..<allWords.count {
-                    if i != j {  // Don't pair a word with itself
-                        let twoWordCombo = "\(allWords[i]) \(allWords[j])"
-                        searchTerms.insert(twoWordCombo)
-                    }
+                for j in 0..<allWords.count where i != j {  // Don't pair a word with itself
+                    let twoWordCombo = "\(allWords[i]) \(allWords[j])"
+                    searchTerms.insert(twoWordCombo)
                 }
             }
         }
