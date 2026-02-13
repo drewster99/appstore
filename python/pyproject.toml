@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "appstore-mcp-server"
+version = "1.0.0"
+description = "MCP server for App Store search, rankings, and competitive analysis"
+readme = "../README.md"
+requires-python = ">=3.12"
+license = "MIT"
+keywords = ["mcp", "app-store", "ios", "aso", "app-store-optimization"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Libraries",
+]
+
+[project.urls]
+Homepage = "https://github.com/drewster99/appstore-mcp-server"
+Repository = "https://github.com/drewster99/appstore-mcp-server"
+Issues = "https://github.com/drewster99/appstore-mcp-server/issues"
+
+[project.scripts]
+appstore-mcp-server = "appstore_mcp_server:main"
