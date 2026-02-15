@@ -1,3 +1,24 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:a533b5b34a2401efbb6879a67b521aa5b81436e6c78139a67b4dfb10783caffd
-size 413
+//
+//  ContentView.swift
+//  DemoLanguageModelChooseKeywords
+//
+//  Created by Andrew Benson on 9/26/25.
+//
+
+import SwiftUI
+
+struct ContentView: View {
+    var body: some View {
+        VStack {
+            Image(systemName: "globe")
+                .imageScale(.large)
+                .foregroundStyle(.tint)
+            Text("Hello, world!")
+        }
+        .padding()
+    }
+}
+
+#Preview {
+    ContentView()
+}
