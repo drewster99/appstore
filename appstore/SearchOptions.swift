@@ -100,13 +100,20 @@ enum SearchAttribute: String, CaseIterable {
 
     var isRecommendedForSoftware: Bool {
         switch self {
-        case .softwareDeveloper, .titleTerm, .descriptionTerm, .artistTerm,
-             .keywordsTerm, .languageTerm, .releaseYearTerm, .ratingTerm:
+        case .softwareDeveloper, .descriptionTerm, .keywordsTerm,
+             .genreIndex, .ratingIndex:
             return true
         default:
             return false
         }
     }
+
+    /// Attribute raw values that are confirmed to work with `media=software&entity=software`.
+    /// All others return HTTP 400 from Apple's iTunes Search API.
+    static let validForSoftware: Set<String> = [
+        "softwareDeveloper", "descriptionTerm", "keywordsTerm",
+        "genreIndex", "ratingIndex"
+    ]
 }
 
 struct SearchOptions {

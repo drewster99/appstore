@@ -1,87 +1,44 @@
 # iTunes Search API Attributes for Software
 
-## Discovered Working Attributes
+## Valid Attributes (Confirmed Working)
 
-The following attributes have been tested and confirmed to work with `entity=software` for the iTunes Search API:
+The following 5 attributes have been tested and confirmed to work with `media=software&entity=software`:
 
-### Software/App-Specific Attributes
 - **`softwareDeveloper`** - Search by developer/publisher name only
-- **`titleTerm`** - Search within app titles/names only
 - **`descriptionTerm`** - Search within app descriptions only
-
-### General Attributes (work with software)
-- **`artistTerm`** - Search by artist/developer name
-- **`keywordsTerm`** - Search within keywords
-- **`languageTerm`** - Search by language
-- **`allTrackTerm`** - Search across all track-related fields
-
-### Rating & Date Attributes
-- **`ratingTerm`** - Search by content rating
-- **`ratingIndex`** - Search by rating index
-- **`releaseYearTerm`** - Search by release year
-
-### Genre Attributes
+- **`keywordsTerm`** - Search within app keywords
 - **`genreIndex`** - Search by genre index
+- **`ratingIndex`** - Search by rating index
 
-### Media-Related Attributes (surprisingly work with software)
-These attributes are primarily for other media types but still function with software:
-- **`albumTerm`** - Valid but typically no results for apps
-- **`songTerm`** - Returns app results (unclear why)
-- **`mixTerm`** - Returns app results
-- **`composerTerm`** - Returns app results
-- **`producerTerm`** - Returns app results
-- **`directorTerm`** - Returns app results
-- **`actorTerm`** - Returns app results
-- **`authorTerm`** - Valid but typically no results
-- **`featureFilmTerm`** - Returns app results
-- **`movieTerm`** - Returns app results
-- **`movieArtistTerm`** - Valid but typically no results
-- **`shortFilmTerm`** - Returns app results
-- **`showTerm`** - Valid but typically no results
-- **`tvEpisodeTerm`** - Returns app results
-- **`tvSeasonTerm`** - Valid but typically no results
-- **`allArtistTerm`** - Valid but typically no results
+## Invalid Attributes (HTTP 400)
+
+The following attributes return HTTP 400 when used with `media=software&entity=software`:
+
+- `titleTerm` - Returns HTTP 400
+- `artistTerm` - Returns HTTP 400
+- `languageTerm` - Returns HTTP 400
+- `releaseYearTerm` - Returns HTTP 400
+- `ratingTerm` - Returns HTTP 400
+- `allTrackTerm` - Returns HTTP 400
+- All media-specific attributes (`albumTerm`, `songTerm`, `mixTerm`, `composerTerm`, `producerTerm`, `directorTerm`, `actorTerm`, `authorTerm`, `featureFilmTerm`, `movieTerm`, `movieArtistTerm`, `shortFilmTerm`, `showTerm`, `tvEpisodeTerm`, `tvSeasonTerm`, `allArtistTerm`)
 
 ## Usage Examples
 
 ```bash
 # Search for apps by a specific developer only
-curl "https://itunes.apple.com/search?term=Meta&entity=software&attribute=softwareDeveloper"
-
-# Search within app titles only
-curl "https://itunes.apple.com/search?term=photo&entity=software&attribute=titleTerm"
+curl "https://itunes.apple.com/search?term=Meta&media=software&entity=software&attribute=softwareDeveloper"
 
 # Search within app descriptions only
-curl "https://itunes.apple.com/search?term=editing&entity=software&attribute=descriptionTerm"
+curl "https://itunes.apple.com/search?term=editing&media=software&entity=software&attribute=descriptionTerm"
 
-# Search by release year
-curl "https://itunes.apple.com/search?term=2024&entity=software&attribute=releaseYearTerm"
-
-# Search by content rating
-curl "https://itunes.apple.com/search?term=4&entity=software&attribute=ratingTerm"
+# Search within app keywords
+curl "https://itunes.apple.com/search?term=photo&media=software&entity=software&attribute=keywordsTerm"
 ```
 
 ## Notes
 
 1. **Default Behavior**: When no attribute is specified, the API searches across all fields.
-
-2. **Media Type Attributes**: Many attributes designed for music/movies/TV still work with software but may not produce meaningful filtering. They appear to fall back to general search.
-
-3. **Case Sensitivity**: Attribute names appear to be case-sensitive.
-
-4. **Invalid Attributes**: Using an invalid attribute returns an error response (often compressed/garbled).
-
-5. **Combination**: You cannot combine multiple attributes in a single query.
-
-## Recommended Attributes for Software
-
-For app searches, these are the most useful attributes:
-- `softwareDeveloper` - Find apps by a specific developer
-- `titleTerm` - Find apps with specific words in the title
-- `descriptionTerm` - Find apps mentioning specific features/keywords in description
-- `keywordsTerm` - Search app keywords
-- `releaseYearTerm` - Find apps released in a specific year
-
-## Total Working Attributes: 27
-
-All 27 attributes listed above have been tested and confirmed to return valid responses when used with `entity=software`, though not all produce meaningful software-specific filtering.
+2. **Case Sensitivity**: Attribute names are case-sensitive.
+3. **Invalid Attributes**: Using an invalid attribute returns HTTP 400 (often with compressed/garbled error body).
+4. **Combination**: You cannot combine multiple attributes in a single query.
+5. **Parameters**: Both `media=software` and `entity=software` are required for iOS app searches.

@@ -66,7 +66,7 @@ private let allTools: [Tool] = [
                 "query": stringProp("Search term"),
                 "limit": intProp("Max results (1-200, default 10)"),
                 "storefront": stringProp("Two-letter country code (default: US)"),
-                "attribute": stringProp("Search attribute filter (e.g. titleTerm, softwareDeveloper, descriptionTerm)"),
+                "attribute": stringProp("Search attribute filter. Valid: softwareDeveloper, descriptionTerm, keywordsTerm, genreIndex, ratingIndex"),
                 "genre_id": intProp("Genre ID filter (e.g. 6014 for Games)"),
                 "verbosity": stringProp("Detail level: compact (default), full, or complete (all fields). Note: complete is verbose (~4KB/app) — reduce limit for large result sets")
             ],
@@ -342,6 +342,11 @@ private func handleSearchApps(_ args: [String: Value]) async throws -> CallTool.
     let attribute = stringArg(args, "attribute")
     let genreId = intArg(args, "genre_id")
     let verbosity = stringArg(args, "verbosity") ?? "compact"
+
+    if let attribute, !SearchAttribute.validForSoftware.contains(attribute) {
+        let validList = SearchAttribute.validForSoftware.sorted().joined(separator: ", ")
+        return errorResult("Invalid attribute: \(attribute). Valid attributes for software searches: \(validList)")
+    }
 
     let api = AppStoreAPI()
     let result = try await api.searchWithRawData(

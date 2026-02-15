@@ -12,12 +12,17 @@ class SearchAttributeTests: XCTestCase {
     func testRecommendedAttributes() {
         let recommended = SearchAttribute.allCases.filter { $0.isRecommendedForSoftware }
 
+        // Only these 5 attributes actually work with media=software&entity=software
         XCTAssertTrue(recommended.contains(.softwareDeveloper))
-        XCTAssertTrue(recommended.contains(.titleTerm))
         XCTAssertTrue(recommended.contains(.descriptionTerm))
-        XCTAssertTrue(recommended.contains(.artistTerm))
         XCTAssertTrue(recommended.contains(.keywordsTerm))
+        XCTAssertTrue(recommended.contains(.genreIndex))
+        XCTAssertTrue(recommended.contains(.ratingIndex))
+        XCTAssertEqual(recommended.count, 5)
 
+        // These return HTTP 400 for software searches
+        XCTAssertFalse(recommended.contains(.titleTerm))
+        XCTAssertFalse(recommended.contains(.artistTerm))
         XCTAssertFalse(recommended.contains(.movieTerm))
         XCTAssertFalse(recommended.contains(.tvEpisodeTerm))
     }
