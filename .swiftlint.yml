@@ -1,4 +1,8 @@
 
+included:
+  - appstore
+  - appstoreTests
+
 disabled_rules:
   - trailing_whitespace
   - trailing_newline

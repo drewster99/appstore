@@ -66,7 +66,7 @@ private let allTools: [Tool] = [
                 "query": stringProp("Search term"),
                 "limit": intProp("Max results (1-200, default 10)"),
                 "storefront": stringProp("Two-letter country code (default: US)"),
-                "attribute": stringProp("Search attribute filter. Valid: softwareDeveloper, descriptionTerm, keywordsTerm, genreIndex, ratingIndex"),
+                "attribute": stringProp("Search attribute filter. Valid: softwareDeveloper (exact match on developer name), descriptionTerm, keywordsTerm, genreIndex, ratingIndex"),
                 "genre_id": intProp("Genre ID filter (e.g. 6014 for Games)"),
                 "verbosity": stringProp("compact (default): id, name, developer, rating, reviews, price, bundleId, version, genre, minOS, released, updated, url. full: adds description + releaseNotes. complete: raw API response (~4KB/app, use limit≤10)")
             ],
@@ -349,15 +349,27 @@ private func handleSearchApps(_ args: [String: Value]) async throws -> CallTool.
     }
 
     let api = AppStoreAPI()
+    // When searching by developer, request extra results since we'll post-filter
+    let fetchLimit = attribute == "softwareDeveloper" ? 200 : limit
     let result = try await api.searchWithRawData(
         query: query,
-        limit: limit,
+        limit: fetchLimit,
         storefront: storefront,
         attribute: attribute,
         genre: genreId
     )
 
-    return try encodeApps(result.apps, verbosity: verbosity)
+    var apps = result.apps
+
+    // Apple's API does keyword matching ("Nuclear" OR "Cyborg" OR "Corp"), not phrase matching.
+    // Post-filter to only apps whose developer name actually contains the full query.
+    if attribute == "softwareDeveloper" {
+        let queryLower = query.lowercased()
+        apps = apps.filter { $0.artistName.lowercased().contains(queryLower) }
+    }
+
+    let limitedApps = Array(apps.prefix(limit))
+    return try encodeApps(limitedApps, verbosity: verbosity)
 }
 
 private func handleSearchRanked(_ args: [String: Value]) async throws -> CallTool.Result {
