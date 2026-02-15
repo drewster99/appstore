@@ -8,7 +8,7 @@
 import Foundation
 
 /// App version — single source of truth used by CLI, MCP server info, and version tool.
-let appVersion = "0.0.5"
+let appVersion = "0.0.6"
 
 // MCP server mode: run as stdio MCP server when --mcp flag is present
 if CommandLine.arguments.contains("--mcp") {
