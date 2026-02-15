@@ -4,3 +4,4 @@ test_min_ios.html filter=lfs diff=lfs merge=lfs -text
 batch_1_dashboard.html filter=lfs diff=lfs merge=lfs -text
 batch_2_dashboard.html filter=lfs diff=lfs merge=lfs -text
 batch_3_dashboard_updated.html filter=lfs diff=lfs merge=lfs -text
+batch_dashboard.html filter=lfs diff=lfs merge=lfs -text
