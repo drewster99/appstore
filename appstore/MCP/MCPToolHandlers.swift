@@ -68,7 +68,7 @@ private let allTools: [Tool] = [
                 "storefront": stringProp("Two-letter country code (default: US)"),
                 "attribute": stringProp("Search attribute filter. Valid: softwareDeveloper, descriptionTerm, keywordsTerm, genreIndex, ratingIndex"),
                 "genre_id": intProp("Genre ID filter (e.g. 6014 for Games)"),
-                "verbosity": stringProp("Detail level: compact (default), full, or complete (all fields). Note: complete is verbose (~4KB/app) — reduce limit for large result sets")
+                "verbosity": stringProp("compact (default): id, name, developer, rating, reviews, price, bundleId, version, genre, minOS, released, updated, url. full: adds description + releaseNotes. complete: raw API response (~4KB/app, use limit≤10)")
             ],
             required: ["query"]
         )
@@ -84,7 +84,7 @@ private let allTools: [Tool] = [
                 "query": stringProp("Search term"),
                 "limit": intProp("Max results (default 20)"),
                 "storefront": stringProp("Two-letter country code (default: US)"),
-                "verbosity": stringProp("Detail level: compact (default), full, or complete (all fields). Note: complete is verbose (~4KB/app) — reduce limit for large result sets")
+                "verbosity": stringProp("compact (default): id, name, developer, rating, reviews, price, bundleId, version, genre, minOS, released, updated, url. full: adds description + releaseNotes. complete: raw API response (~4KB/app, use limit≤10)")
             ],
             required: ["query"]
         )
@@ -102,7 +102,7 @@ private let allTools: [Tool] = [
                 "bundle_id": stringProp("Bundle identifier (e.g. com.example.app)"),
                 "url": stringProp("App Store URL"),
                 "storefront": stringProp("Two-letter country code (default: US)"),
-                "verbosity": stringProp("Detail level: compact, full (default), or complete (all fields)")
+                "verbosity": stringProp("compact: id, name, developer, rating, reviews, price, bundleId, version, genre, minOS, released, updated, url. full (default): adds description + releaseNotes. complete: raw API response (~4KB/app)")
             ]
         )
     ),
@@ -115,7 +115,7 @@ private let allTools: [Tool] = [
                 "limit": intProp("Number of entries (default 25)"),
                 "genre_id": intProp("Genre ID filter"),
                 "storefront": stringProp("Two-letter country code (default: US)"),
-                "verbosity": stringProp("Detail level: compact (default, no description), full (includes description)")
+                "verbosity": stringProp("compact (default): name, id, developer, price, category, url. full: adds RSS summary/description")
             ],
             required: ["chart_type"]
         )
@@ -128,7 +128,7 @@ private let allTools: [Tool] = [
                 "app_id": stringProp("App ID to find (numeric)"),
                 "keyword": stringProp("Search keyword"),
                 "storefront": stringProp("Two-letter country code (default: US)"),
-                "verbosity": stringProp("Detail level for competitors: compact (default), full, or complete (all fields)")
+                "verbosity": stringProp("compact (default): id, name, developer, rating, reviews, price, genre, url. full: adds description + releaseNotes. complete: raw API response")
             ],
             required: ["app_id", "keyword"]
         )
@@ -172,7 +172,7 @@ private let allTools: [Tool] = [
             properties: [
                 "app_id": stringProp("App ID (numeric)"),
                 "storefront": stringProp("Two-letter country code (default: US)"),
-                "verbosity": stringProp("Detail level for competitors: compact (default), full, or complete (all fields)")
+                "verbosity": stringProp("compact (default): id, name, developer, rating, reviews, price, genre, url. full: adds description + releaseNotes. complete: raw API response")
             ],
             required: ["app_id"]
         )
