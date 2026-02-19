@@ -6,7 +6,7 @@ on:
 
 jobs:
   self-review:
-    if: github.event.pull_request.user.login == 'claude[bot]'
+    if: startsWith(github.event.pull_request.head.ref, 'claude/')
     runs-on: ubuntu-latest
     permissions:
       contents: write
