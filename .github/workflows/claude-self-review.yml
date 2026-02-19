@@ -2,7 +2,7 @@ name: Claude Self-Review
 
 on:
   pull_request:
-    types: [opened]
+    types: [opened, synchronize]
 
 jobs:
   self-review:
@@ -14,13 +14,33 @@ jobs:
       issues: write
       id-token: write
     steps:
+      - name: Check review iteration count
+        id: check-iterations
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          MAX_REVIEWS=3
+          COUNT=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+            --jq '[.[] | select(.user.login == "github-actions[bot]" and (.body | contains("Self-review pass"))) ] | length')
+          echo "review_count=$COUNT" >> "$GITHUB_OUTPUT"
+          if [ "$COUNT" -ge "$MAX_REVIEWS" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Reached max self-review iterations ($MAX_REVIEWS). Skipping."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "Self-review pass $((COUNT + 1)) of $MAX_REVIEWS"
+          fi
+
       - name: Checkout repository
+        if: steps.check-iterations.outputs.skip != 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
           ref: ${{ github.head_ref }}
 
       - name: Set up global Claude config
+        if: steps.check-iterations.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.CROSS_REPO_PAT }}
         run: |
@@ -32,15 +52,19 @@ jobs:
             --jq '.content' | base64 -d >> ~/.claude/CLAUDE.md
 
       - name: Self-review and fix
+        if: steps.check-iterations.outputs.skip != 'true'
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            You opened this PR. Now review your own work before a human sees it.
+            Self-review pass ${{ steps.check-iterations.outputs.review_count }} of 3.
+
+            You opened this PR. Review your own work before a human sees it.
 
             1. Re-read every changed file. Check for bugs, edge cases, missing error handling.
             2. Verify code style matches CLAUDE.md and existing patterns in this repo.
             3. Look for security issues (injection, hardcoded secrets, unsafe operations).
             4. If you find problems, fix them and push to this branch.
             5. After fixing, re-review your fixes.
-            6. Add a comment on this PR summarizing your self-review findings and any fixes made.
+            6. Add a PR comment starting with "Self-review pass N:" summarizing findings and any fixes made.
+            7. If everything looks clean, say so. Don't make changes for the sake of making changes.
