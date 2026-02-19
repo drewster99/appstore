@@ -1,0 +1,46 @@
+name: Claude Self-Review
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  self-review:
+    if: github.event.pull_request.user.login == 'claude[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          ref: ${{ github.head_ref }}
+
+      - name: Set up global Claude config
+        env:
+          GH_TOKEN: ${{ secrets.CROSS_REPO_PAT }}
+        run: |
+          mkdir -p ~/.claude
+          gh api repos/drewster99/dev-ops/contents/claude-rules/base.md \
+            --jq '.content' | base64 -d > ~/.claude/CLAUDE.md
+          echo "" >> ~/.claude/CLAUDE.md
+          gh api repos/drewster99/dev-ops/contents/claude-rules/ci.md \
+            --jq '.content' | base64 -d >> ~/.claude/CLAUDE.md
+
+      - name: Self-review and fix
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You opened this PR. Now review your own work before a human sees it.
+
+            1. Re-read every changed file. Check for bugs, edge cases, missing error handling.
+            2. Verify code style matches CLAUDE.md and existing patterns in this repo.
+            3. Look for security issues (injection, hardcoded secrets, unsafe operations).
+            4. If you find problems, fix them and push to this branch.
+            5. After fixing, re-review your fixes.
+            6. Add a comment on this PR summarizing your self-review findings and any fixes made.
