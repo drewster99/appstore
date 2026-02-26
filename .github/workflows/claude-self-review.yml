@@ -6,7 +6,6 @@ on:
 
 jobs:
   self-review:
-    if: startsWith(github.event.pull_request.head.ref, 'claude/')
     runs-on: ubuntu-latest
     permissions:
       contents: write
